@@ -1,0 +1,115 @@
+name: ✅ Quality Check - No Errors Allowed!
+
+# 🎯 PURPOSE: Prevent buggy code from being merged to main branches
+# This workflow MUST pass before any PR can be merged
+
+on:
+  # 🚨 REQUIRED: Run on ALL pull requests (prevents bad code from merging)
+  pull_request:
+    branches: [ beta, main ]
+  
+  # Also run on beta pushes for continuous monitoring  
+  push:
+    branches: [ beta ]
+
+# Only one check at a time to avoid conflicts
+concurrency:
+  group: quality-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 🛡️ THE GATEKEEPER - This job prevents broken code from merging
+  prevent-errors:
+    name: 🛡️ Error Prevention Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+    # 📥 Get the code
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    # ☕ Setup Java (required for Android)
+    - name: ☕ Setup JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    # 🎯 Setup Android SDK
+    - name: 🎯 Setup Android SDK
+      uses: android-actions/setup-android@v3
+      
+    # 📦 Speed up builds with caching
+    - name: 📦 Cache Gradle
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+
+    # 🔧 Basic setup
+    - name: 🔧 Create local.properties
+      run: |
+        echo "sdk.dir=$ANDROID_HOME" >> local.properties
+        echo "API_BASE_URL=\"https://api-dev.wisme.com/v1/\"" >> local.properties
+
+    # 🚨 CRITICAL: Build must succeed (catches compilation errors)
+    - name: 🚨 Build Check (Must Pass!)
+      run: |
+        echo "🔍 Checking if code compiles without errors..."
+        ./gradlew assembleDebug --stacktrace
+        echo "✅ Build successful - no compilation errors!"
+      
+    # 🧪 CRITICAL: Tests must pass (catches logic errors)  
+    - name: 🧪 Test Check (Must Pass!)
+      run: |
+        echo "🔍 Running tests to catch bugs..."
+        ./gradlew test --stacktrace
+        echo "✅ All tests passed - no test failures!"
+      
+    # 📊 IMPORTANT: Lint check (catches potential issues)
+    - name: 📊 Lint Check (Must Pass!)
+      run: |
+        echo "🔍 Checking for code issues..."
+        ./gradlew lintDebug --stacktrace
+        echo "✅ Lint check passed - code quality looks good!"
+      
+    # ✅ SUCCESS: All checks passed
+    - name: ✅ All Checks Passed!
+      if: success()
+      run: |
+        echo "🎉 GREAT JOB! Your code passed all quality checks!"
+        echo "✅ No compilation errors"
+        echo "✅ All tests passing"  
+        echo "✅ No lint issues"
+        echo "🚀 This PR is ready for review!"
+        
+    # ❌ FAILURE: Something went wrong
+    - name: ❌ Quality Check Failed
+      if: failure()
+      run: |
+        echo "🚨 QUALITY CHECK FAILED!"
+        echo "❌ Your code has errors that need to be fixed"
+        echo "📝 Please check the logs above and fix the issues"
+        echo "🔄 Push your fixes and this check will run again"
+        exit 1
+
+    # 💬 Comment on PR with results
+    - name: 💬 PR Status Comment
+      if: github.event_name == 'pull_request' && always()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const status = '${{ job.status }}';
+          const body = status === 'success' 
+            ? '✅ **Quality Check PASSED!** 🎉\n\n🔨 Build successful\n🧪 Tests passing\n📊 Lint check passed\n\n**Ready for review!**'
+            : '❌ **Quality Check FAILED!** 🚨\n\n⚠️ Please fix the errors above and push again.\n\nThe PR cannot be merged until all checks pass.';
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: body
+          });
