@@ -95,21 +95,3 @@ jobs:
         echo "📝 Please check the logs above and fix the issues"
         echo "🔄 Push your fixes and this check will run again"
         exit 1
-
-    # 💬 Comment on PR with results
-    - name: 💬 PR Status Comment
-      if: github.event_name == 'pull_request' && always()
-      uses: actions/github-script@v6
-      with:
-        script: |
-          const status = '${{ job.status }}';
-          const body = status === 'success' 
-            ? '✅ **Quality Check PASSED!** 🎉\n\n🔨 Build successful\n🧪 Tests passing\n📊 Lint check passed\n\n**Ready for review!**'
-            : '❌ **Quality Check FAILED!** 🚨\n\n⚠️ Please fix the errors above and push again.\n\nThe PR cannot be merged until all checks pass.';
-          
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: body
-          });
