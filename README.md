@@ -160,22 +160,5 @@ FIREBASE_API_KEY=xxxx
 
 - Frontend bugs → Always handle loading and error states.
 
----
-
-## 🚀 CI/CD & Workflows
-
-This project includes automated quality checks and deployment workflows.
-
-📁 **[View CI/CD Documentation](./docs/ci-cd/README.md)**
-
-- **Quality Checks**: Automatic build, test, and lint on every PR
-- **Branch Protection**: Prevents broken code from reaching main branches  
-- **Deployment**: Automated builds and distribution
-
-**Quick Links:**
-- 🛡️ [Workflow Guide](./docs/ci-cd/workflow-guide.md) - How our CI works
-- 🔒 [Branch Protection Setup](./docs/ci-cd/branch-protection.md) - Protect your branches
-- 📋 [Setup Guide](./SETUP.md) - Complete development setup
-
 
 
