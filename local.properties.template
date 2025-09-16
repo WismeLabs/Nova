@@ -1,0 +1,23 @@
+# Local properties template for Nova Android Project
+# Copy this file to local.properties and fill in your specific values
+# DO NOT commit local.properties to version control
+
+# Android SDK path (update with your actual path)
+# Windows example: sdk.dir=C\\:\\Users\\YourUsername\\AppData\\Local\\Android\\Sdk
+# macOS/Linux example: sdk.dir=/Users/YourUsername/Library/Android/sdk
+sdk.dir=YOUR_ANDROID_SDK_PATH_HERE
+
+# NDK path (if using NDK)
+# ndk.dir=YOUR_NDK_PATH_HERE
+
+# Backend API Configuration
+# Get the actual URL from your team lead
+API_BASE_URL="https://your-backend-api-url.com/api/v1/"
+
+# Firebase Configuration
+# Download google-services.json from Firebase Console and place in app/ directory
+# FIREBASE_API_KEY="your_firebase_api_key_here"
+
+# Optional: Other environment-specific configurations
+# DEBUG_MODE=true
+# LOG_LEVEL=verbose
