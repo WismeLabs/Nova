@@ -1,0 +1,35 @@
+name: Branch Protection
+
+on:
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+
+jobs:
+  enforce-branch-rules:
+    name: Enforce Branch Rules
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check branch protection rules
+        run: |
+          echo "🔍 Checking branch protection rules..."
+          
+          BASE_BRANCH="${{ github.event.pull_request.base.ref }}"
+          HEAD_BRANCH="${{ github.event.pull_request.head.ref }}"
+          
+          echo "PR from: $HEAD_BRANCH → $BASE_BRANCH"
+          
+          # Rule 1: Only beta can merge to main
+          if [[ "$BASE_BRANCH" == "main" && "$HEAD_BRANCH" != "beta" ]]; then
+            echo "❌ VIOLATION: Only 'beta' branch can merge to 'main'"
+            echo "🔧 FIX: Create PR to 'beta' branch instead"
+            exit 1
+          fi
+          
+          # Rule 2: Feature branches should target beta
+          if [[ "$HEAD_BRANCH" =~ ^(feat|fix|docs|test|logs)/ && "$BASE_BRANCH" != "beta" ]]; then
+            echo "❌ VIOLATION: Feature branches must target 'beta' branch"
+            echo "🔧 FIX: Change PR target to 'beta' branch"
+            exit 1
+          fi
+          
+          echo "✅ All branch protection rules passed!"
