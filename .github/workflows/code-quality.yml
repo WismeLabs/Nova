@@ -1,0 +1,78 @@
+name: Code Quality
+
+on:
+  pull_request:
+    branches: [ beta ]
+    paths:
+      - 'app/**/*.kt'
+      - 'app/**/*.java'
+      - '**/*.gradle'
+      - '**/*.gradle.kts'
+
+jobs:
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Check code formatting (Kotlin)
+        run: |
+          echo "🔍 Checking Kotlin code formatting..."
+          # Basic check for common formatting issues
+          if find app/src -name "*.kt" -exec grep -l "^import.*\*" {} \; | head -1; then
+            echo "❌ Found wildcard imports - please use specific imports"
+            find app/src -name "*.kt" -exec grep -l "^import.*\*" {} \;
+            exit 1
+          fi
+          echo "✅ No wildcard imports found"
+
+      - name: Check for TODO/FIXME comments
+        run: |
+          echo "🔍 Checking for unresolved TODO/FIXME comments..."
+          TODO_COUNT=$(find app/src -name "*.kt" -o -name "*.java" | xargs grep -n "TODO\|FIXME" | wc -l || true)
+          if [ $TODO_COUNT -gt 0 ]; then
+            echo "⚠️  Found $TODO_COUNT TODO/FIXME comments:"
+            find app/src -name "*.kt" -o -name "*.java" | xargs grep -n "TODO\|FIXME" || true
+            echo "💡 Consider resolving these before merging"
+          else
+            echo "✅ No TODO/FIXME comments found"
+          fi
+
+      - name: Verify package structure
+        run: |
+          echo "🔍 Verifying package structure follows template..."
+          EXPECTED_DIRS=("ui" "viewmodel" "domain" "data" "di" "utils")
+          BASE_PATH="app/src/main/java/com/wisme/nova"
+          
+          for dir in "${EXPECTED_DIRS[@]}"; do
+            if [ ! -d "$BASE_PATH/$dir" ]; then
+              echo "❌ Missing expected directory: $BASE_PATH/$dir"
+              exit 1
+            fi
+          done
+          echo "✅ Package structure is correct"
+
+      - name: Build and compile check
+        run: ./gradlew compileDebugKotlin --no-daemon

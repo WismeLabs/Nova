@@ -1,6 +1,9 @@
 # Nova - Android Project Base Template
 **Wisme Frontend Service - Base Setup Repository**
 
+[![Android CI/CD](https://github.com/WismeLabs/Nova/actions/workflows/android-ci.yml/badge.svg)](https://github.com/WismeLabs/Nova/actions/workflows/android-ci.yml)
+[![Code Quality](https://github.com/WismeLabs/Nova/actions/workflows/code-quality.yml/badge.svg)](https://github.com/WismeLabs/Nova/actions/workflows/code-quality.yml)
+
 > ⚠️ **This is a BASE TEMPLATE repository.** Clone this to start your Android development with pre-configured architecture and best practices. The actual implementation folders and files will be created by developers based on specific requirements.
 
 ## 🎯 Purpose
@@ -157,6 +160,33 @@ fun LoginScreen() { ... }
 
 ---
 
+## 🚀 CI/CD & Automation
+
+### Automated Checks
+Every PR automatically runs:
+- ✅ **Build validation** - Ensures code compiles without errors
+- ✅ **Unit tests** - Runs all existing tests
+- ✅ **Lint checks** - Code style and potential issues
+- ✅ **Branch protection** - Enforces branching rules
+
+### Branch Protection Rules
+- ❌ **Direct pushes to `main`** are blocked
+- ✅ **Only `beta` → `main`** merges allowed
+- ✅ **Feature branches** must target `beta`
+- ✅ **All checks must pass** before merge
+
+### Commit Message Format
+```bash
+# Use any format you prefer - no validation enforced
+
+# Examples:
+Add login validation
+Fix audio playback issue
+Update setup instructions
+```
+
+---
+
 ##  Git & Workflow Rules
 
 ### Branches
@@ -273,14 +303,6 @@ dependencies {
 ./gradlew test
 ```
 
----
-
-## 📞 Need Help?
-
-- **Team Lead:** Ask for Firebase credentials and API endpoints
-- **Architecture Questions:** Review this README and `SETUP.md`
-- **Git Issues:** Follow the workflow rules above
-- **Build Problems:** Check `local.properties` and dependencies
 
 ---
 
