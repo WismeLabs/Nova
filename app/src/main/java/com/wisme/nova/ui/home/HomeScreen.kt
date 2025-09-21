@@ -129,22 +129,6 @@ fun BottomBar() {
         modifier = Modifier.height(90.dp)
     ) {
         NavigationBarItem(
-            label={Text("Home",style=MaterialTheme.typography.labelSmall,color=Color.White)},
-            selected=true,
-            onClick={ /* TODO */ },
-            icon={
-                Icon(
-                    painter=painterResource(R.drawable.home_icon),
-                    contentDescription="Home",
-                    tint=Color.Green
-                )
-            },
-            modifier=Modifier.padding(top=10.dp),
-            colors = NavigationBarItemDefaults.colors(
-                indicatorColor = Color.Transparent
-            )
-        )
-        NavigationBarItem(
             label={Text("Learn",style=MaterialTheme.typography.labelSmall,color=Color.White)},
             selected=false,
             onClick={ /* TODO */ },
@@ -161,14 +145,14 @@ fun BottomBar() {
             )
         )
         NavigationBarItem(
-            label = {Text("Progress",style=MaterialTheme.typography.labelSmall,color=Color.White)},
-            selected = false,
-            onClick = { /* TODO */ },
-            icon = {
+            label={Text("Home",style=MaterialTheme.typography.labelSmall,color=Color.White)},
+            selected=true,
+            onClick={ /* TODO */ },
+            icon={
                 Icon(
-                    painter = painterResource(R.drawable.track),
-                    contentDescription = "Stats",
-                    tint = Color.White
+                    painter=painterResource(R.drawable.home_icon),
+                    contentDescription="Home",
+                    tint=MaterialTheme.colorScheme.primary
                 )
             },
             modifier=Modifier.padding(top=10.dp),
