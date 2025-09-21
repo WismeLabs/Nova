@@ -60,19 +60,14 @@ fun HomeScreen(){
                 .padding(paddingValues)
         ){
             Column(){
-                var selectedIndex by remember { mutableIntStateOf(0) }
-                TrendingTopicsRow(
-                    topics = listOf("Example topic", "DSA", "Exam. topics #2", "Topic #4", "Topic #5"),
-                    selectedIndex = selectedIndex,
-                    onTopicClick = { selectedIndex = it })
-                Text(
-                    "Recommended",
-                    modifier = Modifier.padding(start=20.dp, top=40.dp),
-                    style= TextStyle(
-                        fontFamily = MaterialTheme.typography.titleMedium.fontFamily,
-                        fontSize = 20.sp
-                    ), color = Color.White
-                )
+                TrendingTopicsRow(topics = listOf("Example topic", "DSA", "Exam. topics #2", "Topic #4", "Topic #5"))
+                Spacer(modifier=Modifier.height(20.dp))
+                Image(
+                 painter = painterResource(R.drawable.wisme_home_intro),
+                 contentDescription = "Wisme home intro",
+                 modifier = Modifier.fillMaxWidth().height(250.dp)
+             )
+                UpcomingFeatures()
             }
         }
     }
@@ -105,7 +100,7 @@ fun TopAppBar() {
                     text = "Welcome Lorem!",
                     color = Color.White,
                     style = TextStyle(
-                        fontFamily = FontFamily(Font(R.font.inter_18pt_regular, FontWeight.Normal)),
+                        fontFamily = MaterialTheme.typography.bodySmall.fontFamily,
                         fontSize = 15.sp
                     )
                 )
@@ -113,7 +108,8 @@ fun TopAppBar() {
                     text = "Explore Podcasts",
                     color = Color.White,
                     style = TextStyle(
-                        fontFamily = FontFamily(Font(R.font.inter_18pt_semibold, FontWeight.Medium)),
+                        fontFamily = MaterialTheme.typography.bodySmall.fontFamily,
+                        fontWeight = FontWeight.Medium,
                         fontSize = 19.sp
                     )
                 )
@@ -181,40 +177,37 @@ fun BottomBar() {
 
 
 @Composable
-fun TrendingTopicsRow(
-    topics: List<String>,
-    selectedIndex: Int = 0,
-    onTopicClick: (Int) -> Unit
-) {
+fun TrendingTopicsRow(topics: List<String>){
     Column(modifier = Modifier.fillMaxWidth().padding(start=20.dp,top=32.dp)) {
         Text(
-            text = "Trending topics",
+            text = "What users want to learn",
             style =TextStyle(
-                fontFamily = FontFamily(Font(R.font.inter_18pt_semibold, FontWeight.Medium)),
+                fontFamily = MaterialTheme.typography.titleMedium.fontFamily,
+                fontWeight = FontWeight.Medium,
                 fontSize = 20.sp),
             color = Color.White,
             modifier = Modifier.padding(bottom = 20.dp)
         )
 
+        val infiniteList = generateSequence { topics }.flatten().take(1000).toList()
         LazyRow(
             contentPadding = PaddingValues(horizontal = 0.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            itemsIndexed(topics) { index, topic ->
-                val isSelected = index == selectedIndex
+            itemsIndexed(infiniteList) { index, topic ->
 
                 Surface(
-                    modifier = Modifier.clickable { onTopicClick(index) },
                     shape = RoundedCornerShape(50),
-                    color = if (isSelected) Color(0xFFB6FF69) else Color.Transparent,
-                    border = if (isSelected) null else BorderStroke(1.dp, Color.Gray)
+                    color =Color.Transparent,
+                    border =BorderStroke(1.dp, Color.White)
                 ) {
                     Text(
                         text = topic,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        color = if (isSelected) Color.Black else Color.White,
+                        color =Color.White,
                         style =TextStyle(
-                            fontFamily = FontFamily(Font(R.font.inter_18pt_semibold, FontWeight.Medium)),
+                            fontFamily = MaterialTheme.typography.bodySmall.fontFamily,
+                            fontWeight = FontWeight.Medium,
                             fontSize = 16.sp)
                     )
                 }
@@ -224,8 +217,17 @@ fun TrendingTopicsRow(
 }
 
 @Composable
-fun RecommendedRow(){
-    
+fun UpcomingFeatures(){
+    Column(modifier = Modifier.fillMaxWidth().padding(start=12.dp,top=32.dp)) {
+        Text(
+            text = "Upcoming features",
+            style =TextStyle(
+                fontFamily = MaterialTheme.typography.titleMedium.fontFamily,
+                fontWeight = FontWeight.Medium,
+                fontSize = 20.sp),
+            color = Color.White)
+
+    }
 }
 
 

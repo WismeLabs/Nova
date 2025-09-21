@@ -10,21 +10,28 @@ import com.wisme.nova.R
 
 // Set of Material typography styles to start with
 val Typography = Typography(
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
-    ),
-    titleMedium = TextStyle(
-        fontFamily = FontFamily(Font(R.font.inter_18pt_medium)),
-        fontWeight = FontWeight.Medium,
+    titleLarge = TextStyle(
+        fontFamily = FontFamily(Font(R.font.inter_18pt_bold)),
+        fontWeight = FontWeight.Bold,
         fontSize = 22.sp,
         lineHeight = 28.sp,
         letterSpacing = 0.sp
     ),
-    labelSmall = TextStyle(
+    titleMedium = TextStyle(
+        fontFamily = FontFamily(Font(R.font.inter_18pt_semibold)),
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 22.sp,
+        lineHeight = 28.sp,
+        letterSpacing = 0.sp
+    ),
+    bodyMedium = TextStyle(
+        fontFamily = FontFamily(Font(R.font.inter_18pt_medium)),
+        fontWeight = FontWeight.Medium,
+        fontSize = 16.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 0.5.sp
+    ),
+    bodySmall = TextStyle(
         fontFamily = FontFamily(Font(R.font.inter_18pt_regular)),
         fontWeight = FontWeight.Normal,
         fontSize = 15.sp,
