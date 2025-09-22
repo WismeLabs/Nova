@@ -60,10 +60,11 @@ fun ExploreJourneys() {
             Text(
                 text = "Choose Your Journey",
                 style = MaterialTheme.typography.titleMedium,
-                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 24.sp,
                 color = Color.White
             )
-            Spacer(modifier = Modifier.height(52.dp))
+            Spacer(modifier = Modifier.height(30.dp))
 
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(20.dp),
@@ -98,14 +99,8 @@ fun ExploreJourneys() {
 fun JourneyItem(journey: JourneysDataClass) {
     Card(
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF17171A)),
-        modifier = Modifier.fillMaxWidth().shadow(
-            elevation = 10.dp,
-            shape = RoundedCornerShape(12.dp),
-            clip = false
-        ),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 16.dp),
-        border = BorderStroke(1.dp, Color.White)
     ) {
         Row(
             modifier = Modifier
@@ -117,23 +112,25 @@ fun JourneyItem(journey: JourneysDataClass) {
                 painter = painterResource(R.drawable.sample_journey),
                 contentDescription = journey.JourneyName,
                 modifier = Modifier
-                    .size(50.dp)
+                    .size(70.dp)
                     .clip(RoundedCornerShape(18.dp)),
                 contentScale = ContentScale.Crop
             )
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(10.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = journey.JourneyName,
                     color = Color.White,
-                    style= MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
+                    style= MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 16.sp,
+                    modifier=Modifier.padding(top=5.dp),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                Spacer(Modifier.height(6.dp))
                 Text(
                     text = journey.JourneyDescription,
                     color = Color.White,
@@ -144,7 +141,7 @@ fun JourneyItem(journey: JourneysDataClass) {
                 )
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(36.dp))
 
             Icon(
                 painter = painterResource(R.drawable.arrow),
