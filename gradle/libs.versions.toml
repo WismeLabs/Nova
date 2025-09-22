@@ -28,7 +28,7 @@ annotation = "1.6.0"
 constraintlayout = "2.1.4"
 lifecycleLivedataKtx = "2.9.4"
 lifecycleViewmodelKtx = "2.9.4"
-firebaseAuthKtx = "24.0.1"
+# firebaseAuthKtx = "24.0.1" # Removed this line
 
 [libraries]
 # Core Android
@@ -99,7 +99,7 @@ androidx-annotation = { group = "androidx.annotation", name = "annotation", vers
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 androidx-lifecycle-livedata-ktx = { group = "androidx.lifecycle", name = "lifecycle-livedata-ktx", version.ref = "lifecycleLivedataKtx" }
 androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycleViewmodelKtx" }
-firebase-auth-ktx = { group = "com.google.firebase", name = "firebase-auth-ktx", version.ref = "firebaseAuthKtx" }
+firebase-auth-ktx = { group = "com.google.firebase", name = "firebase-auth-ktx" } # Version reference removed
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
