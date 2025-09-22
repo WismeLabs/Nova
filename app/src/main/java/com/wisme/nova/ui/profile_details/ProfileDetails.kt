@@ -14,14 +14,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wisme.nova.R
+import com.wisme.nova.ui.common.GradientButtonUi
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,6 +47,9 @@ fun ProfileDetailsScreen() {
     val lightGreen = Color(0xFFC1FF72)
     val textGray = Color.Gray
     val darkGreen = Color(0xFF1A241F)
+    val Gradient = Brush.horizontalGradient(
+        colors = listOf(Color(0xFFE4FFC2), Color(0xFFC1FF72))
+    )
 
     Surface(
         color = Color.Black,
@@ -259,17 +267,29 @@ fun ProfileDetailsScreen() {
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
             Button(
                 onClick = {},
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = lightGreen)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = Color.Black
+                ),
+                contentPadding = PaddingValues(),
+                shape = RoundedCornerShape(30.dp),
+                modifier = Modifier.height(49.dp)
             ) {
-                Text("Next", color = Color.Black, fontWeight = FontWeight.Bold)
+                Box( //for the gradient background
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Gradient, shape = RoundedCornerShape(30.dp))
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Next",style = MaterialTheme.typography.bodyMedium,fontSize = 18.sp,fontWeight = FontWeight.SemiBold)
+                }
             }
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(40.dp))
         }
     }
 }
