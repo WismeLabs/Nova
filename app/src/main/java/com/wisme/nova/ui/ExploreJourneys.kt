@@ -146,8 +146,8 @@ fun JourneyItem(journey: JourneysDataClass) {
             Icon(
                 painter = painterResource(R.drawable.arrow),
                 contentDescription = "Go",
-                tint = Color(0xFFB6FF69),
-                modifier = Modifier.size(12.dp)
+                modifier = Modifier.size(36.dp),
+                tint = Color.Unspecified
             )
         }
     }
