@@ -1,7 +1,18 @@
 package com.wisme.nova.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,9 +26,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -41,38 +55,39 @@ fun ExploreJourneys() {
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 24.dp)
+                .padding(horizontal = 39.dp, vertical = 85.dp)
         ) {
             Text(
                 text = "Choose Your Journey",
                 style = MaterialTheme.typography.titleMedium,
-                fontSize = 18.sp,
-                color = Color.White,
-                modifier = Modifier.padding(bottom = 20.dp)
+                fontSize = 20.sp,
+                color = Color.White
             )
+            Spacer(modifier = Modifier.height(52.dp))
 
             LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.weight(1f)
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+                contentPadding = PaddingValues(bottom = 36.dp)
             ) {
                 items(sampleJourneys) { journey ->
                     JourneyItem(journey)
                 }
             }
 
-            // Bottom info box
             Surface(
-                color = Color(0xFF333333),
+                color = Color(0xFF353634),
                 shape = RoundedCornerShape(10.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp)
             ) {
                 Text(
                     text = "On request journey generation\nfor any topic coming soon",
+                    textAlign = TextAlign.Center,
                     color = Color.White,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(vertical = 12.dp, horizontal = 16.dp)
+                    style= MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 15.sp,
+                    modifier = Modifier.padding(vertical = 10.dp, horizontal = 48.dp)
                 )
             }
         }
@@ -83,9 +98,14 @@ fun ExploreJourneys() {
 fun JourneyItem(journey: JourneysDataClass) {
     Card(
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A)),
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF17171A)),
+        modifier = Modifier.fillMaxWidth().shadow(
+            elevation = 10.dp,
+            shape = RoundedCornerShape(12.dp),
+            clip = false
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 16.dp),
+        border = BorderStroke(1.dp, Color.White)
     ) {
         Row(
             modifier = Modifier
@@ -93,31 +113,32 @@ fun JourneyItem(journey: JourneysDataClass) {
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Journey image
             Image(
-                painter = painterResource(R.drawable.sample_journey), // replace with journey.JourneyImg
+                painter = painterResource(R.drawable.sample_journey),
                 contentDescription = journey.JourneyName,
                 modifier = Modifier
                     .size(50.dp)
-                    .clip(RoundedCornerShape(8.dp)),
+                    .clip(RoundedCornerShape(18.dp)),
                 contentScale = ContentScale.Crop
             )
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
-            // Title & description
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = journey.JourneyName,
                     color = Color.White,
-                    fontSize = 16.sp,
+                    style= MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = journey.JourneyDescription,
-                    color = Color.Gray,
-                    fontSize = 13.sp,
+                    color = Color.White,
+                    style= MaterialTheme.typography.bodySmall,
+                    fontSize = 12.sp,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -125,12 +146,11 @@ fun JourneyItem(journey: JourneysDataClass) {
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Arrow icon
             Icon(
-                painter = painterResource(R.drawable.arrow), // add your arrow icon
+                painter = painterResource(R.drawable.arrow),
                 contentDescription = "Go",
                 tint = Color(0xFFB6FF69),
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(12.dp)
             )
         }
     }

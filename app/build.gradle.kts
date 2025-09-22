@@ -49,7 +49,8 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    
+    implementation(libs.androidx.compose.ui.graphics)
+
     // 🔧 Add your feature-specific dependencies here:
     // Example: Hilt for Dependency Injection
     // implementation("com.google.dagger:hilt-android:2.48")
