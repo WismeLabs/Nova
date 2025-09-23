@@ -1,4 +1,4 @@
-package com.wisme.nova.ui
+package com.wisme.nova.ui.Journeys
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -29,16 +29,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wisme.nova.R
-import com.wisme.nova.data.JourneysDataClass
+import com.wisme.nova.domain.JourneysDataClass
 
 @Composable
 fun JourneyDurationScreen(

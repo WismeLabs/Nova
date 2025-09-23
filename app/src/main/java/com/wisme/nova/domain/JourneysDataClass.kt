@@ -1,4 +1,4 @@
-package com.wisme.nova.data
+package com.wisme.nova.domain
 
 data class JourneysDataClass(
     val JourneyName: String,

@@ -1,4 +1,4 @@
-package com.wisme.nova.ui
+package com.wisme.nova.ui.Journeys
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -34,8 +34,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wisme.nova.R
-import com.wisme.nova.data.EpisodeDataClass
-import com.wisme.nova.data.JourneysDataClass
+import com.wisme.nova.domain.EpisodeDataClass
+import com.wisme.nova.domain.JourneysDataClass
 
 val darkBackground = Color(0xFF121212)
 val textGreen = Color(0XFFC1FF72)
@@ -132,7 +132,7 @@ fun EpisodesScreenContent(journey: JourneysDataClass, episodes: List<EpisodeData
         //Episodes list
         items(episodes) { episode ->
             EpisodeItem(episode = episode)
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
@@ -141,7 +141,7 @@ fun EpisodesScreenContent(journey: JourneysDataClass, episodes: List<EpisodeData
 fun EpisodeItem(episode: EpisodeDataClass) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
