@@ -48,13 +48,13 @@ fun EpisodesScreenContent(journey: JourneysDataClass, episodes: List<EpisodeData
         modifier = Modifier
             .fillMaxSize()
             .background(darkBackground)
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 16.dp).padding(top=32.dp)
     ) {
-        // --- 1. Header Section ---
+        //Header
         item {
             Column {
                 Spacer(modifier = Modifier.height(24.dp))
-                // "Personalised" Chip
+                //Personalised chip
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(24.dp))
@@ -74,7 +74,7 @@ fun EpisodesScreenContent(journey: JourneysDataClass, episodes: List<EpisodeData
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Journey Info
+                //Journey description
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Image(
                         painter = painterResource(id = R.drawable.sample_journey), // Replace with JourneyImg
@@ -112,7 +112,7 @@ fun EpisodesScreenContent(journey: JourneysDataClass, episodes: List<EpisodeData
             }
         }
 
-        // --- 2. Episodes Header ---
+        //Episodes Header
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -129,7 +129,7 @@ fun EpisodesScreenContent(journey: JourneysDataClass, episodes: List<EpisodeData
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // --- 3. Episodes List ---
+        //Episodes list
         items(episodes) { episode ->
             EpisodeItem(episode = episode)
             Spacer(modifier = Modifier.height(12.dp))
@@ -188,18 +188,16 @@ fun InfoChip(text: String) {
     }
 }
 
-// --- Preview and Sample Data ---
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
 fun EpisodesScreenPreview() {
-    // 1. Create sample journey data
+
     val sampleJourney = JourneysDataClass(
         JourneyName = "Human Psychology",
         JourneyDescription = "Discover the fascinating world of human psychology and understand what drives our behaviour",
-        JourneyImg = "" // This would be a drawable resource or URL
+        JourneyImg = ""
     )
 
-    // 2. Create sample episode data
     val sampleEpisodes = listOf(
         EpisodeDataClass(1, "The Science of First Impressions", "How we form instant judgements and what influences first impressions"),
         EpisodeDataClass(2, "Why We Procrastinate", "Understanding the psychology behind procrastination and how to overcome it"),
@@ -207,6 +205,5 @@ fun EpisodesScreenPreview() {
         EpisodeDataClass(4, "The Psychology of Relationships", "Understand how we form bonds and maintain meaningful relationships")
     )
 
-    // 3. Call the main composable with the sample data
     EpisodesScreenContent(journey = sampleJourney, episodes = sampleEpisodes)
 }
