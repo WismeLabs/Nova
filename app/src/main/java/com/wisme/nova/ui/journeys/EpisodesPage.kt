@@ -1,4 +1,4 @@
-package com.wisme.nova.ui.Journeys
+package com.wisme.nova.ui.journeys
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -63,7 +63,7 @@ fun EpisodesScreenContent(journey: JourneysDataClass, episodes: List<EpisodeData
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.sparkles),
+                        painter = painterResource(R.drawable.green_sparkles),
                         contentDescription = "Personalised",
                         tint = Color.Unspecified,
                         modifier = Modifier.size(16.dp)

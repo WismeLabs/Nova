@@ -1,8 +1,7 @@
-package com.wisme.nova.ui.Journeys
+package com.wisme.nova.ui.journeys
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -29,8 +28,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,7 +40,7 @@ import com.wisme.nova.R
 import com.wisme.nova.domain.JourneysDataClass
 
 @Composable
-fun JourneyDurationScreen(
+fun JourneyLevelScreen(
     journey: JourneysDataClass,
     onBackClick: () -> Unit = {},
     onContinueClick: () -> Unit = {}
@@ -102,17 +104,27 @@ fun JourneyDurationScreen(
                 }
                 Spacer(Modifier.height(40.dp))
                 Text(
-                    text = "What episode length do you prefer?",
+                    text = buildAnnotatedString {
+                        append("What’s your level in\n")
+                        withStyle(
+                            style = SpanStyle(
+                                color = Color(0xFFC1FF72),
+                                fontWeight = FontWeight.Medium
+                            )
+                        ) {
+                            append("${journey.JourneyName}?")
+                        }
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Medium,
-                    color = Color(0xFFC1FF72),
+                    color = Color.White,
                     lineHeight = 32.sp
                 )
 
                 Spacer(Modifier.height(24.dp))
                 Text(
-                    text = "Choose what fits your schedule best.",
+                    text = "This helps us match the right learning approach for you",
                     color = Color.White,
                     style = MaterialTheme.typography.bodySmall,
                     fontSize = 14.sp,
@@ -123,26 +135,26 @@ fun JourneyDurationScreen(
                 Spacer(modifier = Modifier.height(35.dp))
 
                 // Levels
-                TimeOption(
-                    icon = R.drawable.five_minutes,
-                    title = "5 minutes",
-                    description = "Quick, focused sessions that fit into busy schedules",
-                    chipText = "Perfect for commutes",
-                    chipTextColor = Color(0XFFC1FF72),
-                    chipColor = Color(0XFF4a5c34)
+                LevelOption(
+                    icon = R.drawable.ic_new,
+                    title = "New to this",
+                    description = "I’m just starting to learn about this topic"
                 )
 
-                TimeOption(
-                    icon = R.drawable.seven_minutes,
-                    title = "7 minutes",
-                    description = "More comprehensive coverage with deeper explanations",
-                    chipText = "Ideal for focus time",
-                    chipTextColor = Color(0XFFFFCD6A),
-                    chipColor = Color(0XFF5c5334)
+                LevelOption(
+                    icon = R.drawable.ic_bit,
+                    title = "I know a bit",
+                    description = "I have some basic understanding but want to learn more"
+                )
+
+                LevelOption(
+                    icon = R.drawable.ic_experienced,
+                    title = "I’m experienced",
+                    description = "I know this well but want to fill in gaps or refresh"
                 )
             }
             Spacer(Modifier.weight(1f))
-            //Generate button
+            //Continue button
             Button(
                 onClick = onContinueClick,
                 colors = ButtonDefaults.buttonColors(
@@ -163,7 +175,7 @@ fun JourneyDurationScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "Generate My Episodes",
+                        "Continue",
                         style = MaterialTheme.typography.bodyMedium,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold
@@ -175,7 +187,7 @@ fun JourneyDurationScreen(
 }
 
 @Composable
-fun TimeOption(icon: Int, title: String, description: String, chipText: String, chipTextColor: Color, chipColor: Color) {
+fun LevelOption(icon: Int, title: String, description: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -195,7 +207,7 @@ fun TimeOption(icon: Int, title: String, description: String, chipText: String, 
             )
         }
         Spacer(modifier = Modifier.width(12.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column {
             Text(
                 text = title,
                 color = Color.White,
@@ -203,21 +215,6 @@ fun TimeOption(icon: Int, title: String, description: String, chipText: String, 
                 fontWeight = FontWeight.Medium,
                 fontSize = 18.sp
             )
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(chipColor)
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.sparkles),
-                    contentDescription = "Personalised",
-                    tint = chipColor,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(text = chipText, color = chipTextColor, fontSize = 12.sp)
-            }
             Text(
                 text = description,
                 color = Color.White,
@@ -232,11 +229,11 @@ fun TimeOption(icon: Int, title: String, description: String, chipText: String, 
 
 @Preview
 @Composable
-fun JourneyDurationScreenPreview() {
+fun JourneyLevelScreenPreview() {
     val sampleJourney = JourneysDataClass(
         JourneyName = "Data Structures and Algorithms",
         JourneyDescription = "",
         JourneyImg = ""
     )
-    JourneyDurationScreen(journey = sampleJourney)
+    JourneyLevelScreen(journey = sampleJourney)
 }

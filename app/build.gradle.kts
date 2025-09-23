@@ -60,7 +60,8 @@ dependencies {
 
     // For collecting flows in a lifecycle-aware manner
     implementation(libs.androidx.lifecycle.runtime.compose)
-    
+    implementation(libs.androidx.compose.runtime)
+
     // Example: Hilt for Dependency Injection
     // implementation("com.google.dagger:hilt-android:2.48")
     // kapt("com.google.dagger:hilt-compiler:2.48")

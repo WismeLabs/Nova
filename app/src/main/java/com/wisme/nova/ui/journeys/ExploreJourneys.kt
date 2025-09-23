@@ -1,4 +1,4 @@
-package com.wisme.nova.ui.Journeys
+package com.wisme.nova.ui.journeys
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
