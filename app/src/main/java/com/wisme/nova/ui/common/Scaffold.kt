@@ -41,11 +41,10 @@ import com.wisme.nova.ui.home.UpcomingFeatures
 fun Scaffold(){
     Scaffold(
         containerColor = Color.Black,
-        //topBar = { TopAppBar() },
+        topBar = { TopAppBar() },
         bottomBar = { BottomBar() }
     ) {paddingValues ->
-        //HomeScreen(modifier=Modifier.padding(paddingValues))
-        ProfileScreen(modifier=Modifier.padding(paddingValues))
+        HomeScreen(modifier=Modifier.padding(paddingValues))
     }
 }
 
