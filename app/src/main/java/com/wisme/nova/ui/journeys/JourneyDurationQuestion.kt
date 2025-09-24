@@ -142,34 +142,6 @@ fun JourneyDurationScreen(
                 )
             }
             Spacer(Modifier.weight(1f))
-            //Generate button
-            Button(
-                onClick = onContinueClick,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = Color.Black
-                ),
-                contentPadding = PaddingValues(),
-                shape = RoundedCornerShape(30.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(49.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Gradient, shape = RoundedCornerShape(30.dp))
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "Generate My Episodes",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
         }
     }
 }
