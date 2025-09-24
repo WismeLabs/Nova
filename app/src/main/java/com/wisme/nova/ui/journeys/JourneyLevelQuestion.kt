@@ -1,0 +1,211 @@
+package com.wisme.nova.ui.journeys
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.wisme.nova.R
+import com.wisme.nova.domain.JourneysDataClass
+
+@Composable
+fun JourneyLevelScreen(
+    journey: JourneysDataClass,
+    onBackClick: () -> Unit = {},
+    onContinueClick: () -> Unit = {}
+) {
+
+    val Gradient = Brush.horizontalGradient(
+        colors = listOf(Color(0xFFE4FFC2), Color(0xFFC1FF72))
+    )
+
+    Surface(
+        color = Color.Black,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(20.dp),
+        ) {
+            //Back icon in top bar
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top
+            ) {
+                IconButton(onClick = onBackClick) {
+                    Icon(
+                        painter=painterResource(R.drawable.back_arrow),
+                        contentDescription = "Back",
+                        tint = Color.Unspecified
+                    )
+                }
+            }
+            Spacer(Modifier.height(30.dp))
+
+            // Main content
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painter = painterResource(id = R.drawable.sample_journey),
+                        contentDescription = journey.JourneyName,
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Text(
+                            text = journey.JourneyName,
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "Personalizing your experience",
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+                Spacer(Modifier.height(40.dp))
+                Text(
+                    text = buildAnnotatedString {
+                        append("What’s your level in\n")
+                        withStyle(
+                            style = SpanStyle(
+                                color = Color(0xFFC1FF72),
+                                fontWeight = FontWeight.Medium
+                            )
+                        ) {
+                            append("${journey.JourneyName}?")
+                        }
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.White,
+                    lineHeight = 32.sp
+                )
+
+                Spacer(Modifier.height(24.dp))
+                Text(
+                    text = "This helps us match the right learning approach for you",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontSize = 14.sp,
+                    textAlign = TextAlign.Left,
+                    modifier = Modifier.padding(end = 100.dp)
+                )
+
+                Spacer(modifier = Modifier.height(35.dp))
+
+                // Levels
+                LevelOption(
+                    icon = R.drawable.ic_new,
+                    title = "New to this",
+                    description = "I’m just starting to learn about this topic"
+                )
+
+                LevelOption(
+                    icon = R.drawable.ic_bit,
+                    title = "I know a bit",
+                    description = "I have some basic understanding but want to learn more"
+                )
+
+                LevelOption(
+                    icon = R.drawable.ic_experienced,
+                    title = "I’m experienced",
+                    description = "I know this well but want to fill in gaps or refresh"
+                )
+            }
+            Spacer(Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+fun LevelOption(icon: Int, title: String, description: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(70.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(id = icon),
+                contentDescription = title,
+                tint = Color.Unspecified
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column {
+            Text(
+                text = title,
+                color = Color.White,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                fontSize = 18.sp
+            )
+            Text(
+                text = description,
+                color = Color.White,
+                style = MaterialTheme.typography.bodySmall,
+                fontSize = 12.sp,
+                textAlign = TextAlign.Left,
+                modifier = Modifier.padding(end = 70.dp)
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+fun JourneyLevelScreenPreview() {
+    val sampleJourney = JourneysDataClass(
+        JourneyName = "Data Structures and Algorithms",
+        JourneyDescription = "",
+        JourneyImg = ""
+    )
+    JourneyLevelScreen(journey = sampleJourney)
+}
