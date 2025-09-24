@@ -49,8 +49,20 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.ui.text)
+    implementation(libs.androidx.compose.material3)
+
     // 🔧 Add your feature-specific dependencies here:
+    // Jetpack Media3 for audio playback
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.ui)
+    implementation(libs.androidx.media3.session)
+
+    // For collecting flows in a lifecycle-aware manner
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.compose.runtime)
+
     // Example: Hilt for Dependency Injection
     // implementation("com.google.dagger:hilt-android:2.48")
     // kapt("com.google.dagger:hilt-compiler:2.48")

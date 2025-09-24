@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -12,7 +15,23 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Nova"
         tools:targetApi="31">
-            <!-- No activities defined in base template. Add your own MainActivity when implementing. -->
+            <activity
+                android:name=".MainActivity"
+                android:exported="true"
+                android:theme="@style/Theme.Nova">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                </intent-filter>
+            </activity>
+            <service
+                android:name=".utils.PlayerService"
+                android:exported="true"
+                android:foregroundServiceType="mediaPlayback">
+                <intent-filter>
+                    <action android:name="androidx.media3.session.MediaSessionService"/>
+                </intent-filter>
+            </service>
     </application>
 
 </manifest>
