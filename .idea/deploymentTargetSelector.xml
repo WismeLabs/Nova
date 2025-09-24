@@ -2,9 +2,16 @@
 <project version="4">
   <component name="deploymentTargetSelector">
     <selectionStates>
-      <SelectionState runConfigName="app">
+https://github.com/WismeLabs/Nova/pull/16/conflict?name=.idea%252FdeploymentTargetSelector.xml&ancestor_oid=b268ef36cd2de3a14ddddf25aa9f5d4e95731e18&base_oid=27d70c8987dfc94905794f850cb894378c2c44b6&head_oid=6c7100cb3f0252e43d34320658d844265801c307      <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
+      <SelectionState runConfigName="LoginScreenPreview">
+        <option name="selectionMode" value="DROPDOWN" />
+      </SelectionState>
+      <SelectionState runConfigName="SignUpScreenPreview">
+        <option name="selectionMode" value="DROPDOWN" />
+      </SelectionState>
+      <SelectionState runConfigName="ProfileDetailsScreenPreview">
       <SelectionState runConfigName="HomeScreenPreview">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
