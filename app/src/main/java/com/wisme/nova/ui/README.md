@@ -1,8 +1,8 @@
 # UI Layer (Presentation)
 
-This folder contains all UI-related code including screens, components, and Compose UI elements.
+This folder contains all UI-related code including screens, components, and Compose UI elements for the Nova app.
 
-## Suggested Structure:
+## Current Structure:
 ```
 ui/
 ├── auth/           # Authentication screens (login, register, etc.)
@@ -12,4 +12,4 @@ ui/
 └── common/         # Shared UI components
 ```
 
-Create feature-based folders as needed for your specific requirements.
+All screens are built using Jetpack Compose with Material 3 design system.

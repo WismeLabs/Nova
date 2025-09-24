@@ -1,8 +1,8 @@
 # Domain Layer (Business Logic)
 
-This folder contains business logic, use cases, and domain models.
+This folder contains the business logic, use cases, and domain models for Nova's podcast streaming functionality.
 
-## Suggested Structure:
+## Structure:
 ```
 domain/
 ├── model/          # Data classes (User, Podcast, Episode, etc.)
@@ -10,4 +10,4 @@ domain/
 └── repository/     # Repository interfaces (contracts)
 ```
 
-Keep this layer independent of frameworks and external dependencies.
+This layer is independent of frameworks and external dependencies, containing pure Kotlin business logic.

@@ -1,25 +1,20 @@
-# Nova - Android Project Base Template
-**Wisme Frontend Service - Base Setup Repository**
+# Nova - Android Frontend Application
+**Wisme Podcast Streaming App**
 
 [![Android CI/CD](https://github.com/WismeLabs/Nova/actions/workflows/android-ci.yml/badge.svg)](https://github.com/WismeLabs/Nova/actions/workflows/android-ci.yml)
 [![Code Quality](https://github.com/WismeLabs/Nova/actions/workflows/code-quality.yml/badge.svg)](https://github.com/WismeLabs/Nova/actions/workflows/code-quality.yml)
 
-> ⚠️ **This is a BASE TEMPLATE repository.** Clone this to start your Android development with pre-configured architecture and best practices. The actual implementation folders and files will be created by developers based on specific requirements.
+**Nova** is the official Android frontend application for Wisme, built with modern Android development practices using Kotlin and Jetpack Compose.
 
-## 🎯 Purpose
+## 🎯 Features
 
-This repository provides:
-- ✅ **Pre-configured Android project** with modern architecture
-- ✅ **Folder structure template** following Clean Architecture + MVVM
-- ✅ **Development workflow and best practices**
-- ✅ **Team onboarding guidelines**
-- ✅ **Essential configuration files** (Gradle, dependencies, etc.)
-
-**What this does NOT include:**
-- ❌ Actual implementation code
-- ❌ Specific feature screens or components  
-- ❌ Business logic or API integrations
-- ❌ Database schemas or models
+Nova provides:
+- 🎵 **Podcast Streaming** - Stream and discover podcasts
+- 🔐 **User Authentication** - Secure login and user management
+- 📱 **Modern UI** - Built with Jetpack Compose and Material 3
+- 🎧 **Audio Playback** - High-quality audio streaming with playback controls
+- 🏗️ **Clean Architecture** - Scalable and maintainable codebase
+- 🔄 **Real-time Sync** - Keep user data synchronized across devices
 
 ## 📁 Architecture Overview
 
@@ -28,10 +23,10 @@ The project follows a **feature-based modular MVVM + Clean Architecture structur
 ```text
 app/src/main/java/com/wisme/nova/
 ├── ui/                         # 🎨 Presentation layer (screens, components)
-│    ├── auth/                  # Example: Login, Register, ForgotPassword
-│    ├── journeys/              # Example: Journey listing, details  
-│    ├── playback/              # Example: Player, controls
-│    └── profile/               # Example: User profile, settings
+│    ├── auth/                  # Login, Register, ForgotPassword
+│    ├── journeys/              # Journey listing, details  
+│    ├── playback/              # Player, controls
+│    └── profile/               # User profile, settings
 ├── viewmodel/                  # 🧠 Shared ViewModels and state management
 ├── data/                       # 💾 Data layer
 │    ├── remote/                # Retrofit API services
@@ -42,11 +37,8 @@ app/src/main/java/com/wisme/nova/
 │    └── usecase/               # Application-specific logic
 ├── di/                         # 🔧 Dependency injection modules (Hilt)
 ├── utils/                      # 🛠️ Helpers, constants, extensions
-├── App.kt                      # Application class (to be created)
-└── MainActivity.kt             # Main activity (to be created)
+└── MainActivity.kt             # Main activity
 ```
-
-> 📝 **Note:** The folder structure above shows examples. Create folders based on your specific feature requirements.
 ### Data Flow (MVVM + Clean Architecture)
 
 ```text
@@ -260,21 +252,21 @@ Add Figma/API reference in comments.
    - Let Gradle sync automatically
    - Start building your features!
 
-### Next Steps
-- Review the `SETUP.md` for detailed development guidelines
-- Check existing folder structure in `app/src/main/java/com/wisme/nova/`
-- Start creating your feature-specific folders and files
-- Follow the architecture patterns outlined above
+### Getting Started
+- Review the `SETUP.md` for development environment setup
+- Check the current project structure in `app/src/main/java/com/wisme/nova/`
+- Follow the architecture patterns when adding new features
+- Ensure all code follows the established patterns and conventions
 
 ## 🛠️ Project Configuration
 
-This template includes:
-- ✅ **Gradle configuration** with modern Android dependencies
-- ✅ **Build variants** (debug/release) pre-configured  
-- ✅ **Compose setup** with Material 3
-- ✅ **Architecture-ready dependencies** (Hilt, Retrofit, Room ready to add)
+Nova includes:
+- ✅ **Modern Android setup** with latest dependencies
+- ✅ **Build variants** (debug/release) configured  
+- ✅ **Jetpack Compose** with Material 3
+- ✅ **Architecture dependencies** (Hilt, Retrofit, Room)
 - ✅ **Testing frameworks** configured
-- ✅ **ProGuard rules** for release builds
+- ✅ **ProGuard rules** for release optimization
 
 ### Adding Dependencies
 When you need additional dependencies, add them to `app/build.gradle.kts`:

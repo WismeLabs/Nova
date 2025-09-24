@@ -34,10 +34,10 @@ fun HomeScreen(modifier:Modifier=Modifier){
         Column{
             TrendingTopicsRow(topics = listOf("Example topic", "DSA", "Exam. topics #2", "Topic #4", "Topic #5"))
             Spacer(modifier=Modifier.height(20.dp))
-            Image(
-                painter = painterResource(R.drawable.wisme_home_intro),
-                contentDescription = "Wisme home intro",
-                modifier = Modifier.fillMaxWidth().height(250.dp))
+            //Image(
+              //  painter = painterResource(R.drawable.wisme_home_intro),
+                //contentDescription = "Wisme home intro",
+                //modifier = Modifier.fillMaxWidth().height(250.dp))
             UpcomingFeatures()
             }
         }
@@ -92,7 +92,7 @@ fun UpcomingFeatures(){
                 fontFamily = MaterialTheme.typography.titleMedium.fontFamily,
                 fontWeight = FontWeight.Medium,
                 fontSize = 20.sp),
-            color = Color.White)
+            color = Color.Black)
 
     }
 }
