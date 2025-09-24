@@ -142,7 +142,7 @@ fun JourneyItem(journey: JourneysDataClass) {
             Spacer(modifier = Modifier.width(36.dp))
 
             Icon(
-                painter = painterResource(R.drawable.arrow),
+                painter = painterResource(R.drawable.forward_arrow),
                 contentDescription = "Go",
                 modifier = Modifier.size(36.dp),
                 tint = Color.Unspecified
