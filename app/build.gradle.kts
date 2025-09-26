@@ -2,16 +2,17 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    // Temporarily disabled for preview - uncomment when you have google-services.json
-    // alias(libs.plugins.google.services)
+    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.hilt)
+    alias(libs.plugins.google.services)
 }
 
 android {
-    namespace = "com.wisme.nova"
+    namespace = "com.wisme.firstapp"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.wisme.nova"
+        applicationId = "com.wisme.firstapp"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
@@ -59,10 +60,13 @@ dependencies {
     implementation(libs.androidx.lifecycle.livedata.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
 
-    // Firebase - temporarily disabled for preview
-    // implementation(platform(libs.firebase.bom))
-    // implementation(libs.firebase.auth)
-    // implementation(libs.firebase.auth.ktx)
+    // Firebase
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.auth.ktx)
+    
+    // Google Sign-In
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.text)
     implementation(libs.androidx.compose.material3)
@@ -75,14 +79,20 @@ dependencies {
     // For collecting flows in a lifecycle-aware manner
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.compose.runtime)
-
-    // Example: Hilt for Dependency Injection
-    // implementation("com.google.dagger:hilt-android:2.48")
-    // kapt("com.google.dagger:hilt-compiler:2.48")
     
-    // Example: Retrofit for Networking
-    // implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    // implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    // Navigation
+    implementation(libs.androidx.navigation.compose)
+
+    // Hilt for Dependency Injection
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
+    
+    // Retrofit for Networking
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.gson)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.logging)
     
     // Example: Room for Database
     // implementation("androidx.room:room-runtime:2.5.0")
