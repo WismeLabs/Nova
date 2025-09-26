@@ -1,5 +1,5 @@
 # Nova - Android Frontend Application
-**Wisme Podcast Streaming App**
+**Wisme  App**
 
 [![Android CI/CD](https://github.com/WismeLabs/Nova/actions/workflows/android-ci.yml/badge.svg)](https://github.com/WismeLabs/Nova/actions/workflows/android-ci.yml)
 [![Code Quality](https://github.com/WismeLabs/Nova/actions/workflows/code-quality.yml/badge.svg)](https://github.com/WismeLabs/Nova/actions/workflows/code-quality.yml)
