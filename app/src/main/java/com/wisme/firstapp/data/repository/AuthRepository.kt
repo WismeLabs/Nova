@@ -107,7 +107,11 @@ class AuthRepository @Inject constructor(
                 profession = profession
             )
             
+            println("AuthRepository: Calling createUserProfile with token: Bearer ${firebaseToken.take(50)}...")
+            println("AuthRepository: Request data: $request")
             val response = apiService.createUserProfile("Bearer $firebaseToken", request)
+            println("AuthRepository: Response code: ${response.code()}")
+            println("AuthRepository: Response message: ${response.message()}")
             if (response.isSuccessful && response.body() != null) {
                 val responseBody = response.body()!!
                 Logger.logAuth(
@@ -253,6 +257,49 @@ class AuthRepository @Inject constructor(
                 }
             }
         } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Send login information to backend with provider ID
+     */
+    suspend fun sendLoginInfo(email: String): Result<LoginInfoResponse> {
+        Logger.logRepository("AuthRepository", "sendLoginInfo - Sending login info with provider ID")
+        
+        return try {
+            val request = LoginInfoRequest(
+                email = email,
+                provider = "wisme-mvpv1"  // Custom provider ID from backend team
+            )
+            
+            val response = apiService.loginInfo(request)
+            if (response.isSuccessful && response.body() != null) {
+                val responseBody = response.body()!!
+                Logger.logRepository(
+                    repository = "AuthRepository",
+                    operation = "sendLoginInfo",
+                    success = true,
+                    additionalData = mapOf("provider" to "wisme-mvpv1")
+                )
+                Result.success(responseBody)
+            } else {
+                val errorMessage = "Login info failed: ${response.code()} ${response.message()}"
+                Logger.logRepository(
+                    repository = "AuthRepository",
+                    operation = "sendLoginInfo",
+                    success = false,
+                    errorMessage = errorMessage
+                )
+                Result.failure(Exception(errorMessage))
+            }
+        } catch (e: Exception) {
+            Logger.logRepository(
+                repository = "AuthRepository",
+                operation = "sendLoginInfo",
+                success = false,
+                errorMessage = e.message ?: "Unknown error"
+            )
             Result.failure(e)
         }
     }

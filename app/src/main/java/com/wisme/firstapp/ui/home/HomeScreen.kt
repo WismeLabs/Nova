@@ -3,6 +3,7 @@ package com.wisme.firstapp.ui.home
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,22 +42,44 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import com.wisme.firstapp.R
 import com.wisme.firstapp.ui.common.TopAppBar
 import com.wisme.firstapp.data.local.AuthPreferences
+import com.wisme.firstapp.viewmodel.JourneyViewModel
+import com.wisme.firstapp.viewmodel.TopicViewModel
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.collectAsState
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.getValue
 
 
 @Composable
 fun HomeScreen(
     authPrefs: AuthPreferences,
+    journeyViewModel: JourneyViewModel,
+    modifier: Modifier = Modifier,
     onNavigateToJourneys: () -> Unit = {},
-    modifier: Modifier = Modifier
+    onNavigateToPlayer: (String, String) -> Unit = { _, _ -> },
+    onNavigateToFeedback: () -> Unit = {},
+    onNavigateToUserProfile: () -> Unit = {},
+    onNavigateToTopicRequest: () -> Unit = {}
 ) {
 
     // Get user data from preferences
     val userName = remember { authPrefs.userDisplayName ?: authPrefs.userName ?: "Welcome" }
     val userAvatarId = remember { authPrefs.userAvatarId }
+    
+    // Observe progress tracking state
+    val hasStartedAnyEpisode by journeyViewModel.hasStartedAnyEpisode.collectAsState()
+    val continueLearning by journeyViewModel.continueLearning.collectAsState()
+    val journeys by journeyViewModel.journeys.collectAsState()
+    
+    // Get topic view model for popular topics
+    val topicViewModel: TopicViewModel = hiltViewModel()
+    val popularTopics by topicViewModel.popularTopics.collectAsStateWithLifecycle()
     
     // Map avatar ID to drawable resource
     val avatarResource = remember(userAvatarId) {
@@ -79,7 +102,8 @@ fun HomeScreen(
             // Top App Bar with dynamic user data
             TopAppBar(
                 username = userName,
-                avatarResId = avatarResource
+                avatarResId = avatarResource,
+                onAvatarClick = onNavigateToUserProfile
             )
             
             // Scrollable content
@@ -93,7 +117,10 @@ fun HomeScreen(
             
             item {
                 // Category Chips Section
-                CategoryChipsSection()
+                CategoryChipsSection(
+                    popularTopics = popularTopics,
+                    onNavigateToTopicRequest = onNavigateToTopicRequest
+                )
             }
             
             item {
@@ -124,20 +151,38 @@ fun HomeScreen(
         Column(
             modifier = Modifier.align(Alignment.BottomCenter)
         ) {
-            ResumeLearningSection()
-            BottomNavigationBar(onNavigateToJourneys = onNavigateToJourneys)
+            // Only show continue learning if user has started any episode
+            if (hasStartedAnyEpisode && continueLearning != null) {
+                val (journeyId, episodeId) = continueLearning!!
+                ResumeLearningSection(
+                    journeyId = journeyId,
+                    episodeId = episodeId,
+                    journeys = journeys,
+                    onPlayClick = { jId, eId -> onNavigateToPlayer(jId, eId) }
+                )
+            }
+            BottomNavigationBar(
+                onNavigateToJourneys = onNavigateToJourneys,
+                onNavigateToFeedback = onNavigateToFeedback
+            )
         }
     }
 }
 
 @Composable
-fun CategoryChipsSection() {
-    // Random topics that will be fetched from backend later
-    val topics = listOf(
-        "Machine Learning", "Web Development", "Data Science", "Mobile Apps", 
-        "AI & ChatGPT", "Blockchain", "Cloud Computing", "Cybersecurity",
-        "Game Development", "UI/UX Design", "Digital Marketing", "Photography"
-    )
+fun CategoryChipsSection(
+    popularTopics: List<com.wisme.firstapp.data.api.TopicRequestInfo>,
+    onNavigateToTopicRequest: () -> Unit
+) {
+    // Use popular topics from backend, fallback to diverse default topics
+    val topics = if (popularTopics.isNotEmpty()) {
+        popularTopics.map { "${it.topic} (${it.request_count})" }
+    } else {
+        listOf(
+            "Machine Learning", "Photography", "Stock Trading", 
+            "Startups", "Cooking Basics", "Virat Kohli"
+        )
+    }
     
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
         Text(
@@ -170,6 +215,29 @@ fun CategoryChipsSection() {
                 }
             }
         }
+        
+        // Add topic request button
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Button(
+            onClick = onNavigateToTopicRequest,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF6C5CE7),
+                contentColor = Color.White
+            ),
+            shape = RoundedCornerShape(25.dp)
+        ) {
+            Text(
+                text = "What would you like to learn?",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                fontSize = 16.sp,
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
+        }
     }
 }
 
@@ -180,20 +248,14 @@ fun MainWelcomeImageSection() {
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
     ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-        ) {
-            Image(
-                painter = painterResource(R.drawable.home_welcome),
-                contentDescription = "Welcome to Aura",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-            )
-        }
+        Image(
+            painter = painterResource(R.drawable.home_welcome),
+            contentDescription = "Welcome to Wisme",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+        )
     }
 }
 
@@ -228,49 +290,46 @@ fun UpcomingFeaturesSection() {
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             itemsIndexed(features) { index, (imageRes, title, subtitle) ->
-                Card(
+                Box(
                     modifier = Modifier
                         .width(180.dp)
-                        .height(160.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                        .height(160.dp)
                 ) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        // Background Image
-                        Image(
-                            painter = painterResource(imageRes),
-                            contentDescription = title,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                        
-                        // Overlay with text
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(60.dp)
-                                .align(Alignment.BottomCenter)
-                                .background(
-                                    Color.Black.copy(alpha = 0.7f)
-                                ),
-                            contentAlignment = Alignment.Center
+                    // Background Image
+                    Image(
+                        painter = painterResource(imageRes),
+                        contentDescription = title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                    )
+                    
+                    // Overlay with text
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(60.dp)
+                            .align(Alignment.BottomCenter)
+                            .background(
+                                Color.Black.copy(alpha = 0.7f)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    text = title,
-                                    color = Color.White,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = subtitle,
-                                    color = lightGreen,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
+                            Text(
+                                text = title,
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = subtitle,
+                                color = lightGreen,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
                         }
                     }
                 }
@@ -280,9 +339,28 @@ fun UpcomingFeaturesSection() {
 }
 
 @Composable
-fun ResumeLearningSection(modifier: Modifier = Modifier) {
+fun ResumeLearningSection(
+    journeyId: String,
+    episodeId: String,
+    journeys: List<com.wisme.firstapp.domain.JourneysDataClass>,
+    onPlayClick: (String, String) -> Unit,
+    modifier: Modifier = Modifier
+) {
     val lightGreen = Color(0xFFC1FF72)
     val darkGreen = Color(0xFF1A241F)
+    
+    // Find the current journey and episode - use exact match or ID-based matching
+    val currentJourney = journeys.find { 
+        it.JourneyName.equals(journeyId, ignoreCase = true) ||
+        it.JourneyName.contains(journeyId, ignoreCase = true)
+    }
+    val currentEpisode = currentJourney?.episodes?.find { episode ->
+        "episode_${episode.episodeNumber}" == episodeId
+    }
+    
+    // Fallback display if journey/episode not found
+    val displayJourneyName = currentJourney?.JourneyName ?: "Unknown Journey"
+    val displayEpisodeTitle = currentEpisode?.title ?: "Episode ${episodeId.removePrefix("episode_")}"
     
     Card(
         modifier = modifier
@@ -328,13 +406,13 @@ fun ResumeLearningSection(modifier: Modifier = Modifier) {
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = "DSA & Coding Interviews", // This will be dynamic
+                    text = displayJourneyName,
                     color = Color.White,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Arrays and Strings", // This will be dynamic
+                    text = displayEpisodeTitle,
                     color = Color.Gray,
                     fontSize = 14.sp
                 )
@@ -342,7 +420,11 @@ fun ResumeLearningSection(modifier: Modifier = Modifier) {
             
             // Play button
             Card(
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier
+                    .size(40.dp)
+                    .clickable {
+                        onPlayClick(journeyId, episodeId)
+                    },
                 shape = CircleShape,
                 colors = CardDefaults.cardColors(containerColor = lightGreen)
             ) {
@@ -363,47 +445,10 @@ fun ResumeLearningSection(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun TrendingTopicsRow(topics: List<String>){
-    Column(modifier = Modifier.fillMaxWidth().padding(start=20.dp,top=32.dp)) {
-        Text(
-            text = "What users want to learn",
-            style =TextStyle(
-                fontFamily = MaterialTheme.typography.titleMedium.fontFamily,
-                fontWeight = FontWeight.Medium,
-                fontSize = 20.sp),
-            color = Color.White,
-            modifier = Modifier.padding(bottom = 20.dp)
-        )
-
-        val infiniteList = generateSequence { topics }.flatten().take(1000).toList()
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 0.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            itemsIndexed(infiniteList) { index, topic ->
-
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color =Color.Transparent,
-                    border =BorderStroke(1.dp, Color.White)
-                ) {
-                    Text(
-                        text = topic,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        color =Color.White,
-                        style =TextStyle(
-                            fontFamily = MaterialTheme.typography.bodySmall.fontFamily,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 16.sp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun BottomNavigationBar(onNavigateToJourneys: () -> Unit = {}) {
+fun BottomNavigationBar(
+    onNavigateToJourneys: () -> Unit = {},
+    onNavigateToFeedback: () -> Unit = {}
+) {
     val lightGreen = Color(0xFFC1FF72)
     
     NavigationBar(
@@ -441,7 +486,7 @@ fun BottomNavigationBar(onNavigateToJourneys: () -> Unit = {}) {
                 )
             },
             selected = true,
-            onClick = { /* TODO */ },
+            onClick = { /* Already on Home screen */ },
             icon = {
                 Icon(
                     painter = painterResource(R.drawable.home_icon),
@@ -463,7 +508,7 @@ fun BottomNavigationBar(onNavigateToJourneys: () -> Unit = {}) {
                 )
             },
             selected = false,
-            onClick = { /* TODO */ },
+            onClick = onNavigateToFeedback,
             icon = {
                 Icon(
                     painter = painterResource(R.drawable.feedback),
@@ -482,17 +527,15 @@ fun BottomNavigationBar(onNavigateToJourneys: () -> Unit = {}) {
 @Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 fun HomeScreenPreview() {
-    val context = LocalContext.current
-    // Create AuthPreferences for preview with default values
-    val previewAuthPrefs = AuthPreferences(context)
-    
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = Color.Black
     ) {
-        HomeScreen(
-            authPrefs = previewAuthPrefs,
-            onNavigateToJourneys = { /* Preview navigation */ }
+        // Note: Preview cannot use actual JourneyViewModel due to dependencies
+        Text(
+            text = "HomeScreen Preview - Cannot show with ViewModel dependencies",
+            color = Color.White,
+            modifier = Modifier.padding(16.dp)
         )
     }
 }

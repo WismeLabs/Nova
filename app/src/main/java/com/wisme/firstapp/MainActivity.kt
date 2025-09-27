@@ -18,12 +18,14 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.wisme.firstapp.navigation.NovaNavigation
 import com.wisme.firstapp.theme.AppTheme
 import com.wisme.firstapp.viewmodel.AuthViewModel
+import com.wisme.firstapp.viewmodel.JourneyViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     
     private val authViewModel: AuthViewModel by viewModels()
+    private val journeyViewModel: JourneyViewModel by viewModels()
     private lateinit var googleSignInClient: GoogleSignInClient
     
     private val googleSignInLauncher = registerForActivityResult(
@@ -67,6 +69,7 @@ class MainActivity : ComponentActivity() {
                     NovaNavigation(
                         navController = navController,
                         authViewModel = authViewModel,
+                        journeyViewModel = journeyViewModel,
                         onGoogleSignIn = {
                             val signInIntent = googleSignInClient.signInIntent
                             googleSignInLauncher.launch(signInIntent)

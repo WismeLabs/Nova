@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.wisme.firstapp.theme.AppTheme
 
 @Composable
 fun GradientButtonUi(
@@ -52,6 +53,39 @@ fun GradientButtonUi(
                 text = text,
                 fontSize = fontSize.sp,
                 style = textStyle
+            )
+        }
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Composable
+fun GradientButtonUiPreview() {
+    AppTheme {
+        androidx.compose.foundation.layout.Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp)
+        ) {
+            GradientButtonUi(
+                text = "Continue",
+                gradient = Brush.horizontalGradient(
+                    colors = listOf(
+                        Color(0xFF64B5F6),
+                        Color(0xFF42A5F5)
+                    )
+                ),
+                onClick = {}
+            )
+            
+            GradientButtonUi(
+                text = "Get Started",
+                gradient = Brush.horizontalGradient(
+                    colors = listOf(
+                        Color(0xFF81C784),
+                        Color(0xFF66BB6A)
+                    )
+                ),
+                onClick = {}
             )
         }
     }

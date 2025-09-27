@@ -60,14 +60,6 @@ fun LoginScreen(
     onGoogleSignIn: () -> Unit = {},
     authViewModel: AuthViewModel = viewModel()
 ) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var isPasswordVisible by remember { mutableStateOf(false) }
-    var emailError by remember { mutableStateOf<String?>(null) }
-    var passwordError by remember { mutableStateOf<String?>(null) }
-    var showPasswordResetDialog by remember { mutableStateOf(false) }
-    var showPasswordResetSuccessDialog by remember { mutableStateOf(false) }
-    
     // Observe ViewModel state
     val isLoading by authViewModel.isLoading.collectAsStateWithLifecycle()
     val errorMessage by authViewModel.errorMessage.collectAsStateWithLifecycle()
@@ -85,21 +77,64 @@ fun LoginScreen(
         }
     }
     
-    // Show error message
-    LaunchedEffect(errorMessage) {
-        errorMessage?.let {
-            
-            // For now, we'll just clear it after showing
-            authViewModel.clearError()
-        }
-    }
+    // Error message will persist until user dismisses it manually
+    
+    LoginScreenContent(
+        onNavigateToSignUp = onNavigateToSignUp,
+        onNavigateToHome = onNavigateToHome,
+        onNavigateToProfileSetup = onNavigateToProfileSetup,
+        onGoogleSignIn = onGoogleSignIn,
+        isLoading = isLoading,
+        errorMessage = errorMessage,
+        backendHealthy = backendHealthy,
+        passwordResetSuccess = passwordResetSuccess,
+        passwordResetError = passwordResetError,
+        onSignInWithEmailPassword = { email, password ->
+            authViewModel.signInWithEmailPassword(email, password)
+        },
+        onSendPasswordResetEmail = { email ->
+            authViewModel.sendPasswordResetEmail(email)
+        },
+        onClearError = { authViewModel.clearError() },
+        onClearPasswordResetSuccess = { authViewModel.clearPasswordResetSuccess() },
+        onClearPasswordResetError = { authViewModel.clearPasswordResetError() },
+        onRetryBackendConnection = { authViewModel.retryBackendConnection() }
+    )
+}
+
+@Composable
+fun LoginScreenContent(
+    onNavigateToSignUp: () -> Unit = {},
+    onNavigateToHome: () -> Unit = {},
+    onNavigateToProfileSetup: () -> Unit = {},
+    onGoogleSignIn: () -> Unit = {},
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
+    backendHealthy: Boolean = true,
+    passwordResetSuccess: Boolean = false,
+    passwordResetError: String? = null,
+    onSignInWithEmailPassword: (String, String) -> Unit = { _, _ -> },
+    onSendPasswordResetEmail: (String) -> Unit = {},
+    onClearError: () -> Unit = {},
+    onClearPasswordResetSuccess: () -> Unit = {},
+    onClearPasswordResetError: () -> Unit = {},
+    onRetryBackendConnection: () -> Unit = {}
+) {
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var isPasswordVisible by remember { mutableStateOf(false) }
+    var emailError by remember { mutableStateOf<String?>(null) }
+    var passwordError by remember { mutableStateOf<String?>(null) }
+    var hasAttemptedSubmit by remember { mutableStateOf(false) }
+    var showPasswordResetDialog by remember { mutableStateOf(false) }
+    var showPasswordResetSuccessDialog by remember { mutableStateOf(false) }
     
     // Handle password reset success
     LaunchedEffect(passwordResetSuccess) {
         if (passwordResetSuccess) {
             showPasswordResetDialog = false // Close the reset dialog
             showPasswordResetSuccessDialog = true
-            authViewModel.clearPasswordResetSuccess()
+            onClearPasswordResetSuccess()
         }
     }
 
@@ -125,9 +160,24 @@ fun LoginScreen(
     }
 
     fun validateForm(): Boolean {
-        emailError = validateEmail(email)
-        passwordError = validatePassword(password)
-        return emailError == null && passwordError == null
+        val emailValidation = validateEmail(email)
+        val passwordValidation = validatePassword(password)
+        
+        // Only show errors if user has attempted to submit
+        if (hasAttemptedSubmit) {
+            emailError = emailValidation
+            passwordError = passwordValidation
+        }
+        
+        return emailValidation == null && passwordValidation == null
+    }
+    
+    fun validateFormForSubmit(): Boolean {
+        println("validateFormForSubmit called")
+        hasAttemptedSubmit = true
+        val result = validateForm()
+        println("validateFormForSubmit result: $result")
+        return result
     }
 
     Surface(
@@ -139,7 +189,7 @@ fun LoginScreen(
                 .fillMaxSize()
                 .padding(horizontal = 19.dp),
         ) {
-            // Backend connectivity status banner
+            // Backend connectivity status banner - non-blocking info only
             if (!backendHealthy) {
                 Surface(
                     color = MaterialTheme.colorScheme.errorContainer,
@@ -159,20 +209,18 @@ fun LoginScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Connection Issues",
+                                text = "Server Sync Offline",
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onErrorContainer
                             )
-                            errorMessage?.let { message ->
-                                Text(
-                                    text = message,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                            }
+                            Text(
+                                text = "You can still sign in. Data will sync when connection is restored.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
                         }
                         Button(
-                            onClick = { authViewModel.retryBackendConnection() },
+                            onClick = { onRetryBackendConnection() },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.error
                             ),
@@ -191,17 +239,15 @@ fun LoginScreen(
             //Sign in with google button
             Button(
                 onClick = { 
-                    if (backendHealthy) {
-                        onGoogleSignIn()
-                    }
+                    onGoogleSignIn()
                 },
-                enabled = backendHealthy && !isLoading,
+                enabled = !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(49.dp),
                 shape = RoundedCornerShape(48),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (backendHealthy) Color.White else Color.Gray,
+                    containerColor = Color.White,
                     disabledContainerColor = Color.Gray
                 )
             ) {
@@ -395,13 +441,65 @@ fun LoginScreen(
                 )
             }
 
+            // Authentication Error Display
+            errorMessage?.let { error ->
+                Spacer(modifier = Modifier.height(16.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "❌",
+                            fontSize = 20.sp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Authentication Error",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Text(
+                                text = error,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                        Button(
+                            onClick = { onClearError() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            ),
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Text(
+                                text = "Dismiss",
+                                color = MaterialTheme.colorScheme.onError,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
 
             //Sign In Button
             Button(
                 onClick = { 
-                    if (backendHealthy && validateForm()) {
-                        authViewModel.signInWithEmailPassword(email, password)
+                    println("Login button clicked - email: $email, password: $password")
+                    if (validateFormForSubmit()) {
+                        println("Form validation passed, calling onSignInWithEmailPassword")
+                        onSignInWithEmailPassword(email, password)
+                    } else {
+                        println("Form validation failed")
                     }
                 },
                 modifier = Modifier
@@ -409,10 +507,10 @@ fun LoginScreen(
                     .height(49.dp),
                 shape = RoundedCornerShape(48),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (backendHealthy) lightGreen else Color.Gray,
+                    containerColor = lightGreen,
                     disabledContainerColor = Color.Gray
                 ),
-                enabled = backendHealthy && !isLoading
+                enabled = !isLoading
             ) {
                 if (isLoading) {
                     Row(
@@ -450,10 +548,10 @@ fun LoginScreen(
             PasswordResetDialog(
                 onDismiss = { 
                     showPasswordResetDialog = false
-                    authViewModel.clearPasswordResetError()
+                    onClearPasswordResetError()
                 },
                 onResetPassword = { resetEmail ->
-                    authViewModel.sendPasswordResetEmail(resetEmail)
+                    onSendPasswordResetEmail(resetEmail)
                 },
                 isLoading = isLoading,
                 errorMessage = passwordResetError
@@ -716,9 +814,21 @@ fun PasswordResetSuccessDialog(
 @Preview(showBackground = true)
 @Composable
 fun LoginScreenPreview() {
-    LoginScreen(
+    LoginScreenContent(
         onNavigateToSignUp = {},
         onNavigateToHome = {},
-        onGoogleSignIn = {}
+        onNavigateToProfileSetup = {},
+        onGoogleSignIn = {},
+        isLoading = false,
+        errorMessage = null,
+        backendHealthy = true,
+        passwordResetSuccess = false,
+        passwordResetError = null,
+        onSignInWithEmailPassword = { _, _ -> },
+        onSendPasswordResetEmail = { },
+        onClearError = {},
+        onClearPasswordResetSuccess = {},
+        onClearPasswordResetError = {},
+        onRetryBackendConnection = {}
     )
 }

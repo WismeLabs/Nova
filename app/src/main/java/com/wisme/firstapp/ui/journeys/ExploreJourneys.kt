@@ -20,11 +20,16 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,7 +51,9 @@ import com.wisme.firstapp.viewmodel.JourneyViewModel
 @Composable
 fun ExploreJourneys(
     viewModel: JourneyViewModel = hiltViewModel(),
-    onJourneyClick: (JourneysDataClass) -> Unit = {}
+    onJourneyClick: (JourneysDataClass) -> Unit = {},
+    onNavigateToHome: () -> Unit = {},
+    onNavigateToFeedback: () -> Unit = {}
 ) {
     val journeys by viewModel.journeys.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -56,7 +63,9 @@ fun ExploreJourneys(
         journeys = journeys,
         isLoading = isLoading,
         errorMessage = errorMessage,
-        onJourneyClick = onJourneyClick
+        onJourneyClick = onJourneyClick,
+        onNavigateToHome = onNavigateToHome,
+        onNavigateToFeedback = onNavigateToFeedback
     )
 }
 
@@ -65,15 +74,23 @@ fun ExploreJourneysContent(
     journeys: List<JourneysDataClass>,
     isLoading: Boolean = false,
     errorMessage: String? = null,
-    onJourneyClick: (JourneysDataClass) -> Unit = {}
+    onJourneyClick: (JourneysDataClass) -> Unit = {},
+    onNavigateToHome: () -> Unit = {},
+    onNavigateToFeedback: () -> Unit = {}
 ) {
-    Surface(
-        color = Color.Black,
-        modifier = Modifier.fillMaxSize()
-    ) {
+    Scaffold(
+        containerColor = Color.Black,
+        bottomBar = {
+            ExploreJourneysBottomNavigationBar(
+                onNavigateToHome = onNavigateToHome,
+                onNavigateToFeedback = onNavigateToFeedback
+            )
+        }
+    ) { paddingValues ->
         Column(
             Modifier
                 .fillMaxSize()
+                .padding(paddingValues)
                 .padding(horizontal = 39.dp, vertical = 85.dp)
         ) {
             Text(
@@ -110,12 +127,33 @@ fun ExploreJourneysContent(
                 }
             }
 
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(20.dp),
-                contentPadding = PaddingValues(bottom = 36.dp)
-            ) {
-                items(journeys) { journey ->
-                    JourneyItem(journey = journey, onJourneyClick = onJourneyClick)
+            // Handle empty state
+            if (!isLoading && errorMessage == null && journeys.isEmpty()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "No journeys available",
+                        color = Color.Gray,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(vertical = 20.dp)
+                    )
+                    Text(
+                        text = "Check back later for new learning journeys!",
+                        color = Color.Gray,
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                    contentPadding = PaddingValues(bottom = 36.dp)
+                ) {
+                    items(journeys) { journey ->
+                        JourneyItem(journey = journey, onJourneyClick = onJourneyClick)
+                    }
                 }
             }
 
@@ -156,8 +194,21 @@ fun JourneyItem(
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Journey-specific image
+            val journeyImageResource = remember(journey.JourneyName) {
+                when (journey.JourneyName.lowercase()) {
+                "dsa & coding interviews", 
+                "dsa / cracking coding interviews" -> R.drawable.journey_dsa
+                "personal finance mastery", 
+                "personal finance" -> R.drawable.journey_personal_finance
+                "hackathon success guide",
+                "hackathon success" -> R.drawable.journey_hackathon
+                else -> R.drawable.journey_dsa // Default fallback
+                }
+            }
+            
             Image(
-                painter = painterResource(R.drawable.sample_journey),
+                painter = painterResource(id = journeyImageResource),
                 contentDescription = journey.JourneyName,
                 modifier = Modifier
                     .size(70.dp)
@@ -253,4 +304,84 @@ fun ExploreJourneysPreview() {
         isLoading = false,
         errorMessage = null
     )
+}
+
+@Composable
+fun ExploreJourneysBottomNavigationBar(
+    onNavigateToHome: () -> Unit = {},
+    onNavigateToFeedback: () -> Unit = {}
+) {
+    val lightGreen = Color(0xFFC1FF72)
+    
+    NavigationBar(
+        containerColor = Color(0xFF27272A),
+        modifier = Modifier.height(90.dp)
+    ) {
+        NavigationBarItem(
+            label = { 
+                Text(
+                    "Learn",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = lightGreen // Highlighting current section
+                )
+            },
+            selected = true,
+            onClick = { /* Already on Learn/Journeys screen */ },
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.learn),
+                    contentDescription = "Learn",
+                    tint = lightGreen
+                )
+            },
+            modifier = Modifier.padding(top = 10.dp),
+            colors = NavigationBarItemDefaults.colors(
+                indicatorColor = Color.Transparent
+            )
+        )
+        NavigationBarItem(
+            label = { 
+                Text(
+                    "Home",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White
+                )
+            },
+            selected = false,
+            onClick = onNavigateToHome,
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.home_icon),
+                    contentDescription = "Home",
+                    tint = Color.White
+                )
+            },
+            modifier = Modifier.padding(top = 10.dp),
+            colors = NavigationBarItemDefaults.colors(
+                indicatorColor = Color.Transparent
+            )
+        )
+        NavigationBarItem(
+            label = { 
+                Text(
+                    "Feedback",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White
+                )
+            },
+            selected = false,
+            onClick = onNavigateToFeedback,
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.feedback),
+                    contentDescription = "Feedback",
+                    tint = Color.White
+                )
+            },
+            modifier = Modifier.padding(top = 10.dp),
+            colors = NavigationBarItemDefaults.colors(
+                indicatorColor = Color.Transparent
+            )
+        )
+    }
 }

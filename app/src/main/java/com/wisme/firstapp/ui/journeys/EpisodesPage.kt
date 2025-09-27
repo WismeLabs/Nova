@@ -2,6 +2,7 @@ package com.wisme.firstapp.ui.journeys
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -41,6 +47,7 @@ import com.wisme.firstapp.viewmodel.JourneyViewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 
 val darkBackground = Color(0xFF121212)
 val textGreen = Color(0XFFC1FF72)
@@ -49,7 +56,11 @@ val olive = Color(0XFF4a5c34)
 @Composable
 fun EpisodesPage(
     journeyName: String,
-    viewModel: JourneyViewModel = hiltViewModel()
+    viewModel: JourneyViewModel = hiltViewModel(),
+    onEpisodeClick: (JourneysDataClass, EpisodeDataClass) -> Unit = { _, _ -> },
+    onNavigateToHome: () -> Unit = {},
+    onNavigateToJourneys: () -> Unit = {},
+    onNavigateToFeedback: () -> Unit = {}
 ) {
     val journeys by viewModel.journeys.collectAsState()
     
@@ -59,40 +70,59 @@ fun EpisodesPage(
         journey.JourneyName.replace("/", "_").replace(" ", "_").equals(journeyName.replace(" ", "_"), ignoreCase = true)
     }
     
-    if (currentJourney != null) {
-        EpisodesScreenContent(
-            journey = currentJourney,
-            episodes = currentJourney.episodes
-        )
-    } else {
-        // Show loading or fallback
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(darkBackground),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "Loading journey...",
-                    color = Color.White,
-                    fontSize = 16.sp
-                )
-                Text(
-                    text = "Journey: $journeyName",
-                    color = Color.Gray,
-                    fontSize = 14.sp
-                )
+    Scaffold(
+        containerColor = darkBackground,
+        bottomBar = {
+            EpisodesBottomNavigationBar(
+                onNavigateToHome = onNavigateToHome,
+                onNavigateToJourneys = onNavigateToJourneys,
+                onNavigateToFeedback = onNavigateToFeedback
+            )
+        }
+    ) { paddingValues ->
+        if (currentJourney != null) {
+            EpisodesScreenContent(
+                journey = currentJourney,
+                episodes = currentJourney.episodes,
+                onEpisodeClick = onEpisodeClick,
+                modifier = Modifier.padding(paddingValues)
+            )
+        } else {
+            // Show loading or fallback
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(darkBackground)
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Loading journey...",
+                        color = Color.White,
+                        fontSize = 16.sp
+                    )
+                    Text(
+                        text = "Journey: $journeyName",
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun EpisodesScreenContent(journey: JourneysDataClass, episodes: List<EpisodeDataClass>) {
+fun EpisodesScreenContent(
+    journey: JourneysDataClass, 
+    episodes: List<EpisodeDataClass>,
+    onEpisodeClick: (JourneysDataClass, EpisodeDataClass) -> Unit = { _, _ -> },
+    modifier: Modifier = Modifier
+) {
 
     LazyColumn(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(darkBackground)
             .padding(horizontal = 16.dp).padding(top=32.dp)
@@ -123,8 +153,21 @@ fun EpisodesScreenContent(journey: JourneysDataClass, episodes: List<EpisodeData
 
                 //Journey description
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Journey-specific image
+                    val journeyImageResource = remember(journey.JourneyName) {
+                        when (journey.JourneyName.lowercase()) {
+                            "dsa & coding interviews", 
+                            "dsa / cracking coding interviews" -> R.drawable.journey_dsa
+                            "personal finance mastery", 
+                            "personal finance" -> R.drawable.journey_personal_finance
+                            "hackathon success guide",
+                            "hackathon success" -> R.drawable.journey_hackathon
+                            else -> R.drawable.journey_dsa // Default fallback
+                        }
+                    }
+                    
                     Image(
-                        painter = painterResource(id = R.drawable.sample_journey), // Replace with JourneyImg
+                        painter = painterResource(id = journeyImageResource),
                         contentDescription = journey.JourneyName,
                         modifier = Modifier
                             .size(80.dp)
@@ -134,10 +177,6 @@ fun EpisodesScreenContent(journey: JourneysDataClass, episodes: List<EpisodeData
                     Column {
                         Text(text = journey.JourneyName, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            InfoChip(text = "Some Knowledge")
-                            InfoChip(text = "8 min episodes")
-                        }
                     }
                 }
 
@@ -167,7 +206,16 @@ fun EpisodesScreenContent(journey: JourneysDataClass, episodes: List<EpisodeData
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(text = "Episodes", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                TextButton(onClick = { /* Start from beginning */ }) {
+                TextButton(onClick = { 
+                    println("EpisodesPage: 'Start from beginning' button clicked")
+                    if (episodes.isNotEmpty()) {
+                        val firstEpisode = episodes.first()
+                        println("EpisodesPage: Starting first episode: ${firstEpisode.title}")
+                        onEpisodeClick(journey, firstEpisode)
+                    } else {
+                        println("EpisodesPage: No episodes available to start")
+                    }
+                }) {
                     Icon(imageVector = Icons.Default.PlayArrow, contentDescription = "Start", tint = Color(0xFFC1FF72), modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(text = "Start from beginning", color = textGreen)
@@ -178,14 +226,23 @@ fun EpisodesScreenContent(journey: JourneysDataClass, episodes: List<EpisodeData
 
         //Episodes list
         items(episodes) { episode ->
-            EpisodeItem(episode = episode)
+            EpisodeItem(
+                episode = episode,
+                onClick = { 
+                    println("EpisodesPage: Episode clicked - Journey: ${journey.JourneyName}, Episode: ${episode.title}")
+                    onEpisodeClick(journey, episode) 
+                }
+            )
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
 
 @Composable
-fun EpisodeItem(episode: EpisodeDataClass) {
+fun EpisodeItem(
+    episode: EpisodeDataClass,
+    onClick: () -> Unit = {}
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -212,7 +269,12 @@ fun EpisodeItem(episode: EpisodeDataClass) {
         }
         Spacer(modifier = Modifier.width(16.dp))
         IconButton(
-            onClick = { /* Play episode */ },
+            onClick = {
+                println("EpisodesPage: Play button (IconButton) clicked for episode: ${episode.title} (Episode ${episode.episodeNumber})")
+                println("EpisodesPage: About to call onClick() function")
+                onClick() // Use the same onClick as the row
+                println("EpisodesPage: onClick() function called successfully")
+            },
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
@@ -253,4 +315,85 @@ fun EpisodesScreenPreview() {
     )
 
     EpisodesScreenContent(journey = sampleJourney, episodes = sampleEpisodes)
+}
+
+@Composable
+fun EpisodesBottomNavigationBar(
+    onNavigateToHome: () -> Unit = {},
+    onNavigateToJourneys: () -> Unit = {},
+    onNavigateToFeedback: () -> Unit = {}
+) {
+    val lightGreen = Color(0xFFC1FF72)
+    
+    NavigationBar(
+        containerColor = Color(0xFF27272A),
+        modifier = Modifier.height(90.dp)
+    ) {
+        NavigationBarItem(
+            label = { 
+                Text(
+                    "Learn",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = lightGreen // Highlighting current section
+                )
+            },
+            selected = true,
+            onClick = onNavigateToJourneys,
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.learn),
+                    contentDescription = "Learn",
+                    tint = lightGreen
+                )
+            },
+            modifier = Modifier.padding(top = 10.dp),
+            colors = NavigationBarItemDefaults.colors(
+                indicatorColor = Color.Transparent
+            )
+        )
+        NavigationBarItem(
+            label = { 
+                Text(
+                    "Home",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White
+                )
+            },
+            selected = false,
+            onClick = onNavigateToHome,
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.home_icon),
+                    contentDescription = "Home",
+                    tint = Color.White
+                )
+            },
+            modifier = Modifier.padding(top = 10.dp),
+            colors = NavigationBarItemDefaults.colors(
+                indicatorColor = Color.Transparent
+            )
+        )
+        NavigationBarItem(
+            label = { 
+                Text(
+                    "Feedback",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White
+                )
+            },
+            selected = false,
+            onClick = onNavigateToFeedback,
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.feedback),
+                    contentDescription = "Feedback",
+                    tint = Color.White
+                )
+            },
+            modifier = Modifier.padding(top = 10.dp),
+            colors = NavigationBarItemDefaults.colors(
+                indicatorColor = Color.Transparent
+            )
+        )
+    }
 }

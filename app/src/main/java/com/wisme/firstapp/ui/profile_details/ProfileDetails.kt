@@ -222,12 +222,7 @@ fun ProfileDetailsScreen(
         }
     }
     
-    // Show error message
-    LaunchedEffect(errorMessage) {
-        errorMessage?.let {
-            authViewModel.clearError()
-        }
-    }
+    // Error message will persist until user dismisses it manually
 
     val avatars = listOf(
         R.drawable.avatar_1, R.drawable.avatar_2, R.drawable.avatar_3,
@@ -261,25 +256,15 @@ fun ProfileDetailsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 40.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
             ) {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.back_arrow),
-                        contentDescription = "Back",
-                        tint = Color.Unspecified
-                    )
-                }
-                Spacer(modifier = Modifier.weight(1f))
                 Text(
                     text = "Profile Details",
                     color = Color.White,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Medium
                 )
-                Spacer(modifier = Modifier.weight(1f))
-                // Placeholder for symmetry
-                Spacer(modifier = Modifier.size(48.dp))
             }
             
             Spacer(modifier = Modifier.height(40.dp))
@@ -585,9 +570,61 @@ fun ProfileDetailsScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
+            // Error Message Display
+            errorMessage?.let { error ->
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "❌",
+                            fontSize = 20.sp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Profile Setup Error",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Text(
+                                text = error,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                        Button(
+                            onClick = { authViewModel.clearError() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            ),
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Text(
+                                text = "Dismiss",
+                                color = MaterialTheme.colorScheme.onError,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
             Button(
                 onClick = {
+                    println("Complete Profile button clicked")
+                    println("Form data - name: '$name', displayName: '$displayName', dob: '$dob', gender: '$selectedGender', profession: '$selectedProfession'")
+                    
                     if (validateForm()) {
+                        println("Form validation passed, calling completeProfile")
                         authViewModel.completeProfile(
                             name = name,
                             displayName = displayName,
@@ -603,6 +640,14 @@ fun ProfileDetailsScreen(
                                 else -> 1
                             }
                         )
+                    } else {
+                        println("Form validation failed")
+                        println("Validation errors:")
+                        println("- nameError: $nameError")
+                        println("- displayNameError: $displayNameError") 
+                        println("- dobError: $dobError")
+                        println("- genderError: $genderError")
+                        println("- professionError: $professionError")
                     }
                 },
                 colors = ButtonDefaults.buttonColors(
@@ -990,7 +1035,6 @@ private fun ProfileDetailsScreenContent() {
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = { Text("Date of Birth (DD/MM/YYYY)", color = textGray,style = MaterialTheme.typography.titleMedium,fontSize = 16.sp) },
                         leadingIcon = { Icon(painterResource(id = R.drawable.date), contentDescription = null, tint = Color.Unspecified) },
-                        trailingIcon = { Icon(painterResource(id = R.drawable.calendar), contentDescription = null, tint = Color.Unspecified) },
                         shape = RoundedCornerShape(48.dp),
                         colors = TextFieldDefaults.colors(
                             focusedTextColor = Color.White, unfocusedTextColor = Color.White, cursorColor = lightGreen,

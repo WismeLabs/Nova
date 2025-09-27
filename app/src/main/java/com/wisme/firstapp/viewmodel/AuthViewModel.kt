@@ -54,7 +54,10 @@ class AuthViewModel @Inject constructor(
      * Check current authentication state and update navigation
      */
     private fun checkAuthState() {
-        _navigationState.value = authPrefs.getUserNavigationState()
+        println("AuthViewModel: checkAuthState - isLoggedIn: ${authPrefs.isLoggedIn}, hasCompletedProfile: ${authPrefs.hasCompletedProfile}")
+        val newState = authPrefs.getUserNavigationState()
+        println("AuthViewModel: checkAuthState - setting navigation state to: $newState")
+        _navigationState.value = newState
     }
     
     /**
@@ -72,7 +75,7 @@ class AuthViewModel @Inject constructor(
                 if (!allHealthy) {
                     val unhealthyServices = services.filter { !it.value.isHealthy }
                     val errorMessage = "Backend services unavailable: ${unhealthyServices.keys.joinToString(", ")}"
-                    _errorMessage.value = errorMessage
+                    // Don't set error message for production - allow Firebase auth to work independently
                     Logger.logViewModel(
                         viewModel = "AuthViewModel",
                         operation = "checkBackendHealth",
@@ -89,7 +92,7 @@ class AuthViewModel @Inject constructor(
             } catch (e: Exception) {
                 _backendHealthy.value = false
                 val errorMessage = "Cannot connect to backend services: ${e.message}"
-                _errorMessage.value = errorMessage
+                // Don't set error message for production - allow Firebase auth to work independently
                 Logger.logViewModel(
                     viewModel = "AuthViewModel",
                     operation = "checkBackendHealth",
@@ -125,57 +128,69 @@ class AuthViewModel @Inject constructor(
         userId: String,
         email: String
     ) {
+        println("AuthViewModel: handleGoogleSignInSuccess called for userId: $userId")
         Logger.logViewModel("AuthViewModel", "handleGoogleSignInSuccess - Starting Google sign-in process")
         Logger.logAuth("Google Sign-In Start", userId = userId)
         
         viewModelScope.launch {
             _isLoading.value = true
+            println("AuthViewModel: handleGoogleSignInSuccess - storing auth data locally")
             try {
-                // Check backend connectivity first
-                val backendStatus = connectivityRepository.checkBackendHealth()
-                if (!backendStatus.isHealthy) {
-                    val errorMessage = "Cannot connect to server: ${backendStatus.message}. Please check your connection and try again."
-                    _errorMessage.value = errorMessage
-                    Logger.logAuth(
-                        event = "Google Sign-In",
-                        userId = userId,
-                        success = false,
-                        errorMessage = "Backend connectivity failed: ${backendStatus.message}"
-                    )
-                    Logger.logViewModel(
-                        viewModel = "AuthViewModel",
-                        operation = "handleGoogleSignInSuccess",
-                        success = false,
-                        errorMessage = errorMessage
-                    )
-                    _isLoading.value = false
-                    return@launch
-                }
-                
                 // Store authentication data locally
                 authPrefs.firebaseToken = idToken
                 authPrefs.userId = userId
                 authPrefs.userEmail = email
                 authPrefs.isLoggedIn = true
+                println("AuthViewModel: Auth data stored, isLoggedIn = ${authPrefs.isLoggedIn}")
                 
-                // Verify token with backend API
-                val verifyResult = authRepository.verifyToken(idToken)
-                if (verifyResult.isSuccess) {
-                    // Sync profile data with backend
-                    val syncResult = authRepository.syncProfileWithBackend(idToken)
-                    // Profile completion status will be updated in syncProfileWithBackend
-                } else {
-                    _errorMessage.value = "Backend verification failed: ${verifyResult.exceptionOrNull()?.message}"
+                // Try to verify token with backend API (non-blocking)
+                try {
+                    // Send login info with provider ID first
+                    val loginInfoResult = authRepository.sendLoginInfo(email)
+                    if (loginInfoResult.isSuccess) {
+                        println("AuthViewModel: Login info sent successfully with provider ID: wisme-mvpv1")
+                    } else {
+                        println("AuthViewModel: Login info failed: ${loginInfoResult.exceptionOrNull()?.message}")
+                    }
+                    
+                    val verifyResult = authRepository.verifyToken(idToken)
+                    if (verifyResult.isSuccess) {
+                        // Sync profile data with backend
+                        val syncResult = authRepository.syncProfileWithBackend(idToken)
+                        // Profile completion status will be updated in syncProfileWithBackend
+                    } else {
+                        // Backend verification failed, but allow sign-in to proceed
+                        Logger.logAuth(
+                            event = "Backend Verification Failed",
+                            userId = userId,
+                            success = false,
+                            errorMessage = "Backend verification failed but sign-in allowed: ${verifyResult.exceptionOrNull()?.message}"
+                        )
+                    }
+                } catch (e: Exception) {
+                    // Backend communication failed, but allow sign-in to proceed
+                    Logger.logAuth(
+                        event = "Backend Communication Failed",
+                        userId = userId,
+                        success = false,
+                        errorMessage = "Backend communication failed but sign-in allowed: ${e.message}"
+                    )
                 }
                 
+                println("AuthViewModel: Calling checkAuthState")
                 checkAuthState()
+                println("AuthViewModel: Navigation state after checkAuthState: ${_navigationState.value}")
                 if (_errorMessage.value == null) {
                     _errorMessage.value = null // Clear any previous errors
                 }
+                println("AuthViewModel: handleGoogleSignInSuccess completed successfully")
             } catch (e: Exception) {
+                println("AuthViewModel: Exception in handleGoogleSignInSuccess: ${e.message}")
+                e.printStackTrace()
                 _errorMessage.value = "Sign-in failed: ${e.message}"
                 handleSignInFailure()
             } finally {
+                println("AuthViewModel: handleGoogleSignInSuccess - setting loading to false")
                 _isLoading.value = false
             }
         }
@@ -185,32 +200,35 @@ class AuthViewModel @Inject constructor(
      * Handle email/password sign-in
      */
     fun signInWithEmailPassword(email: String, password: String) {
+        println("AuthViewModel: signInWithEmailPassword called with email: $email")
         viewModelScope.launch {
             _isLoading.value = true
+            println("AuthViewModel: Set loading to true")
             try {
-                // Check backend connectivity first
-                val backendStatus = connectivityRepository.checkBackendHealth()
-                if (!backendStatus.isHealthy) {
-                    _errorMessage.value = "Cannot connect to server: ${backendStatus.message}. Please check your connection and try again."
-                    _isLoading.value = false
-                    return@launch
-                }
-                
+                println("AuthViewModel: Calling Firebase signInWithEmailAndPassword")
                 val result = firebaseAuth.signInWithEmailAndPassword(email, password).await()
                 val user = result.user
+                println("AuthViewModel: Firebase auth result - user: ${user?.uid}")
                 if (user != null) {
                     val idToken = user.getIdToken(false).await().token
+                    println("AuthViewModel: Got ID token: ${idToken?.take(20)}...")
                     if (idToken != null) {
+                        println("AuthViewModel: Calling handleGoogleSignInSuccess")
                         handleGoogleSignInSuccess(idToken, user.uid, user.email ?: email)
                     } else {
+                        println("AuthViewModel: Failed to get ID token")
                         _errorMessage.value = "Failed to get authentication token"
                     }
                 } else {
+                    println("AuthViewModel: No user returned from Firebase")
                     _errorMessage.value = "Sign-in failed: No user returned"
                 }
             } catch (e: Exception) {
-                _errorMessage.value = "Sign-in failed: ${e.message}"
+                println("AuthViewModel: Exception in signInWithEmailPassword: ${e.message}")
+                e.printStackTrace()
+                _errorMessage.value = getFirebaseErrorMessage(e, isSignUp = false)
             } finally {
+                println("AuthViewModel: Setting loading to false")
                 _isLoading.value = false
             }
         }
@@ -223,14 +241,6 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // Check backend connectivity first
-                val backendStatus = connectivityRepository.checkBackendHealth()
-                if (!backendStatus.isHealthy) {
-                    _errorMessage.value = "Cannot connect to server: ${backendStatus.message}. Please check your connection and try again."
-                    _isLoading.value = false
-                    return@launch
-                }
-                
                 val result = firebaseAuth.createUserWithEmailAndPassword(email, password).await()
                 val user = result.user
                 if (user != null) {
@@ -244,7 +254,7 @@ class AuthViewModel @Inject constructor(
                     _errorMessage.value = "Sign-up failed: No user returned"
                 }
             } catch (e: Exception) {
-                _errorMessage.value = "Sign-up failed: ${e.message}"
+                _errorMessage.value = getFirebaseErrorMessage(e, isSignUp = true)
             } finally {
                 _isLoading.value = false
             }
@@ -279,16 +289,21 @@ class AuthViewModel @Inject constructor(
         profession: String,
         avatarId: Int
     ) {
+        println("AuthViewModel: completeProfile called with name=$name, displayName=$displayName")
         viewModelScope.launch {
             _isLoading.value = true
+            println("AuthViewModel: completeProfile - set loading to true")
             try {
                 // Check backend connectivity first
+                println("AuthViewModel: completeProfile - checking backend connectivity")
                 val backendStatus = connectivityRepository.checkBackendHealth()
                 if (!backendStatus.isHealthy) {
+                    println("AuthViewModel: completeProfile - backend not healthy: ${backendStatus.message}")
                     _errorMessage.value = "Cannot connect to server: ${backendStatus.message}. Please check your connection and try again."
                     _isLoading.value = false
                     return@launch
                 }
+                println("AuthViewModel: completeProfile - backend is healthy, proceeding")
                 
                 // Store profile data locally first
                 authPrefs.userName = name
@@ -299,27 +314,57 @@ class AuthViewModel @Inject constructor(
                 authPrefs.userAvatarId = avatarId
                 authPrefs.hasCompletedProfile = true
                 
-                // Sync with backend API
-                val firebaseToken = authPrefs.firebaseToken
-                if (firebaseToken != null) {
-                    val result = authRepository.createUserProfile(
-                        firebaseToken = firebaseToken,
-                        avatarId = avatarId,
-                        name = name,
-                        displayName = displayName,
-                        dateOfBirth = dateOfBirth,
-                        gender = gender,
-                        profession = profession
-                    )
+                // Sync with backend API - use existing token or get fresh one
+                val currentUser = firebaseAuth.currentUser
+                val existingToken = authPrefs.firebaseToken
+                
+                if (existingToken != null) {
+                    // Try to get fresh token if currentUser is available, otherwise use existing token
+                    val freshToken = if (currentUser != null) {
+                        try {
+                            currentUser.getIdToken(true).await().token
+                        } catch (e: Exception) {
+                            println("AuthViewModel: Failed to get fresh token, using existing token: ${e.message}")
+                            existingToken
+                        }
+                    } else {
+                        println("AuthViewModel: No current user, using existing token")
+                        existingToken
+                    }
                     
-                    if (!result.isSuccess) {
-                        _errorMessage.value = "Profile sync failed: ${result.exceptionOrNull()?.message}"
-                        // Revert local changes if backend sync fails
-                        authPrefs.hasCompletedProfile = false
+                    if (freshToken != null) {
+                        println("AuthViewModel: Using token for profile creation")
+                        // Update stored token if we got a fresh one
+                        if (freshToken != existingToken) {
+                            authPrefs.firebaseToken = freshToken
+                        }
+                        val result = authRepository.createUserProfile(
+                            firebaseToken = freshToken,
+                            avatarId = avatarId,
+                            name = name,
+                            displayName = displayName,
+                            dateOfBirth = dateOfBirth,
+                            gender = gender,
+                            profession = profession
+                        )
+                        
+                        if (!result.isSuccess) {
+                            _errorMessage.value = "Profile sync with server failed, but your profile has been saved locally. You can continue using the app."
+                            // Keep profile completed locally even if backend sync fails - for production readiness
+                            // authPrefs.hasCompletedProfile remains true
+                            println("AuthViewModel: Backend sync failed but keeping profile completed locally")
+                        }
+                    } else {
+                        println("AuthViewModel: Failed to get fresh Firebase token")
+                        _errorMessage.value = "Your profile has been saved locally. Server sync will happen when connection is restored."
+                        // Keep profile completed locally even if token refresh fails
+                        println("AuthViewModel: Token refresh failed but keeping profile completed locally")
                     }
                 } else {
-                    _errorMessage.value = "No authentication token found"
-                    authPrefs.hasCompletedProfile = false
+                    println("AuthViewModel: No authentication token available")
+                    _errorMessage.value = "Your profile has been saved locally. Please sign in again to sync with server."
+                    // Keep profile completed locally but note that server sync isn't available
+                    println("AuthViewModel: No token available but keeping profile completed locally")
                 }
                 
                 checkAuthState()
@@ -433,6 +478,55 @@ class AuthViewModel @Inject constructor(
     }
     
     /**
+     * Convert Firebase error messages to user-friendly messages
+     */
+    private fun getFirebaseErrorMessage(exception: Exception, isSignUp: Boolean): String {
+        val message = exception.message?.lowercase() ?: ""
+        
+        return when {
+            message.contains("email-already-in-use") || message.contains("already in use") -> {
+                if (isSignUp) {
+                    "This email is already registered. Please try signing in instead, or use a different email address."
+                } else {
+                    "This email is already registered with a different sign-in method. Try signing in with Google."
+                }
+            }
+            message.contains("weak-password") -> {
+                "Password is too weak. Please use at least 6 characters with a mix of letters and numbers."
+            }
+            message.contains("invalid-email") -> {
+                "Please enter a valid email address."
+            }
+            message.contains("user-not-found") -> {
+                if (isSignUp) {
+                    "Sign-up failed. Please try again."
+                } else {
+                    "No account found with this email. Please check your email or sign up for a new account."
+                }
+            }
+            message.contains("wrong-password") -> {
+                "Incorrect password. Please check your password and try again."
+            }
+            message.contains("too-many-requests") -> {
+                "Too many failed attempts. Please wait a few minutes before trying again."
+            }
+            message.contains("network") || message.contains("connection") -> {
+                "Network error. Please check your internet connection and try again."
+            }
+            message.contains("invalid-credential") -> {
+                "Invalid email or password. Please check your credentials and try again."
+            }
+            else -> {
+                if (isSignUp) {
+                    "Sign-up failed. Please check your information and try again."
+                } else {
+                    "Sign-in failed. Please check your credentials and try again."
+                }
+            }
+        }
+    }
+    
+    /**
      * Clear password reset success state
      */
     fun clearPasswordResetSuccess() {
@@ -444,6 +538,70 @@ class AuthViewModel @Inject constructor(
      */
     fun clearPasswordResetError() {
         _passwordResetError.value = null
+    }
+    
+    /**
+     * Update user profile data both locally and online
+     */
+    fun updateUserProfile(
+        name: String,
+        displayName: String,
+        dateOfBirth: String,
+        gender: String,
+        profession: String,
+        avatarId: Int
+    ) {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                _errorMessage.value = null
+                
+                // Update local preferences immediately
+                authPrefs.apply {
+                    userName = name
+                    userDisplayName = displayName
+                    userDateOfBirth = dateOfBirth
+                    userGender = gender
+                    userProfession = profession
+                    userAvatarId = avatarId
+                }
+                
+                // Update online if connected and authenticated
+                val firebaseToken = authPrefs.firebaseToken
+                if (!firebaseToken.isNullOrBlank()) {
+                    try {
+                        // Note: Backend currently only supports display_name, profession, avatar_id
+                        // BACKEND REQUIREMENT: Expand PUT /users/profile/me to support name, date_of_birth, gender
+                        val result = authRepository.updateMyProfile(
+                            firebaseToken = firebaseToken,
+                            displayName = displayName,
+                            profession = profession,
+                            avatarId = avatarId
+                        )
+                        
+                        if (result.isFailure) {
+                            Logger.e("Failed to update profile online: ${result.exceptionOrNull()?.message}", "AUTH_VM")
+                            // Note: Keep local changes even if online update fails
+                            _errorMessage.value = "Profile updated locally. Online sync will retry when backend supports all fields."
+                        } else {
+                            Logger.d("Profile updated successfully online (partial fields)", "AUTH_VM")
+                            _errorMessage.value = "Profile updated. Note: Name, date of birth, and gender updates are pending backend support."
+                        }
+                    } catch (e: Exception) {
+                        Logger.e("Error updating profile online: ${e.message}", "AUTH_VM")
+                        _errorMessage.value = "Profile updated locally. Backend sync will retry when connection improves."
+                    }
+                } else {
+                    Logger.d("Profile updated locally only (offline or not authenticated)", "AUTH_VM")
+                }
+                
+            } catch (e: Exception) {
+                Logger.e("Error updating profile: ${e.message}", "AUTH_VM")
+                _errorMessage.value = "Failed to update profile: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
     }
     
     /**
