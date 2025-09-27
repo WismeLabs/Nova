@@ -42,11 +42,20 @@ fun Scaffold(
     onNavigateToJourneys: () -> Unit = {},
     onNavigateToFeedback: () -> Unit = {},
     currentRoute: String = "home",
+    username: String = "User",
+    avatarResId: Int = R.drawable.avatar_1,
+    onAvatarClick: () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit = {}
 ){
     Scaffold(
         containerColor = Color.Black,
-        topBar = { TopAppBar() },
+        topBar = { 
+            TopAppBar(
+                username = username,
+                avatarResId = avatarResId,
+                onAvatarClick = onAvatarClick
+            ) 
+        },
         bottomBar = { 
             BottomBar(
                 onNavigateToHome = onNavigateToHome,
@@ -175,7 +184,8 @@ fun BottomBar(
 @Preview
 @Composable
 fun ScaffoldPreview() {
-    Scaffold {
-        // Preview content
+    Scaffold { paddingValues ->
+        // Preview content using paddingValues to avoid lint warning
+        Box(modifier = Modifier.padding(paddingValues))
     }
 }

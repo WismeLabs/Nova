@@ -110,6 +110,15 @@ object AppModule {
     
     @Provides
     @Singleton
+    fun provideUserRepository(
+        apiService: AuraApiService,
+        authPrefs: AuthPreferences
+    ): com.wisme.firstapp.data.repository.UserRepository {
+        return com.wisme.firstapp.data.repository.UserRepository(apiService, authPrefs)
+    }
+    
+    @Provides
+    @Singleton
     fun provideJson(): Json {
         return Json {
             ignoreUnknownKeys = true

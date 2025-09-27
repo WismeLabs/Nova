@@ -161,7 +161,7 @@ class AuthRepository @Inject constructor(
     /**
      * Get user profile from backend
      */
-    suspend fun getMyProfile(firebaseToken: String): Result<UserProfileResponse> {
+    suspend fun getMyProfile(firebaseToken: String): Result<UserProfile> {
         return try {
             val response = apiService.getMyProfile("Bearer $firebaseToken")
             if (response.isSuccessful && response.body() != null) {
@@ -179,20 +179,27 @@ class AuthRepository @Inject constructor(
      */
     suspend fun updateMyProfile(
         firebaseToken: String,
+        name: String?,
         displayName: String?,
+        dateOfBirth: String?,
+        gender: String?,
         profession: String?,
         avatarId: Int?
-    ): Result<UserProfileResponse> {
+    ): Result<UserProfile> {
         return try {
             val request = UpdateUserProfileRequest(
+                name = name,
                 display_name = displayName,
+                date_of_birth = dateOfBirth,
+                gender = gender,
                 profession = profession,
                 avatar_id = avatarId
             )
             
             val response = apiService.updateMyProfile("Bearer $firebaseToken", request)
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                val userProfileResponse = response.body()!!
+                Result.success(userProfileResponse.user)
             } else {
                 Result.failure(Exception("Profile update failed: ${response.message()}"))
             }
@@ -226,17 +233,10 @@ class AuthRepository @Inject constructor(
             val profileResult = getMyProfile(firebaseToken)
             
             if (profileResult.isSuccess) {
-                // Profile exists, sync local data with backend data
-                val backendProfile = profileResult.getOrNull()!!
-                authPrefs.apply {
-                    userName = backendProfile.name
-                    userDisplayName = backendProfile.display_name
-                    userDateOfBirth = backendProfile.date_of_birth
-                    userGender = backendProfile.gender
-                    userProfession = backendProfile.profession
-                    userAvatarId = backendProfile.avatar_id
-                    hasCompletedProfile = true
-                }
+                // Profile exists on backend - just mark as completed, DON'T overwrite local data
+                // This prevents overwriting fresh edits with stale backend data
+                println("AuthRepository: Profile exists on backend, marking as completed locally")
+                authPrefs.hasCompletedProfile = true
                 Result.success(true)
             } else {
                 // Profile doesn't exist on backend, check if we have local data to sync

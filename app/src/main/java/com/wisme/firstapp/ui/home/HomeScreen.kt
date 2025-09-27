@@ -53,6 +53,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.collectAsState
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.wisme.firstapp.ui.profile.UserProfileViewModel
 import androidx.compose.runtime.getValue
 
 
@@ -68,9 +69,23 @@ fun HomeScreen(
     onNavigateToTopicRequest: () -> Unit = {}
 ) {
 
-    // Get user data from preferences
-    val userName = remember { authPrefs.userDisplayName ?: authPrefs.userName ?: "Welcome" }
-    val userAvatarId = remember { authPrefs.userAvatarId }
+    // Get user profile view model for real user data
+    val userProfileViewModel: UserProfileViewModel = hiltViewModel()
+    val userProfile by userProfileViewModel.userProfile.collectAsState()
+    
+    // Get user data - use API data if available, otherwise use cached preferences
+    val currentProfile = userProfile
+    val userName = if (currentProfile != null) {
+        currentProfile.display_name
+    } else {
+        authPrefs.userDisplayName ?: authPrefs.userName ?: "Welcome"
+    }
+    
+    val userAvatarId = if (currentProfile != null) {
+        currentProfile.avatar_id
+    } else {
+        authPrefs.userAvatarId
+    }
     
     // Observe progress tracking state
     val hasStartedAnyEpisode by journeyViewModel.hasStartedAnyEpisode.collectAsState()
@@ -349,8 +364,9 @@ fun ResumeLearningSection(
     val lightGreen = Color(0xFFC1FF72)
     val darkGreen = Color(0xFF1A241F)
     
-    // Find the current journey and episode - use exact match or ID-based matching
+    // Find the current journey and episode - use database ID first, then fallback to name matching
     val currentJourney = journeys.find { 
+        it.journeyId == journeyId ||
         it.JourneyName.equals(journeyId, ignoreCase = true) ||
         it.JourneyName.contains(journeyId, ignoreCase = true)
     }

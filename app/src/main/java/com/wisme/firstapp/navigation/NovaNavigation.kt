@@ -173,6 +173,7 @@ fun NovaNavigation(
         
         composable(Routes.EXPLORE_JOURNEYS) {
             com.wisme.firstapp.ui.journeys.ExploreJourneys(
+                authPrefs = authViewModel.getAuthPreferences(),
                 onJourneyClick = { journey ->
                     // Navigate to episodes screen with journey name as parameter
                     val journeyName = journey.JourneyName.replace(" ", "_").replace("/", "_")
@@ -185,6 +186,9 @@ fun NovaNavigation(
                 },
                 onNavigateToFeedback = {
                     navController.navigate(Routes.FEEDBACK)
+                },
+                onProfileClick = {
+                    navController.navigate(Routes.USER_PROFILE)
                 }
             )
         }
@@ -226,23 +230,28 @@ fun NovaNavigation(
         composable("${Routes.PLAYER}/{journeyId}/{episodeId}") { backStackEntry ->
             val journeyId = backStackEntry.arguments?.getString("journeyId") ?: ""
             val episodeId = backStackEntry.arguments?.getString("episodeId") ?: ""
-            println("PlayerScreen Navigation: Received parameters - journeyId='$journeyId', episodeId='$episodeId'")
+            println("PlayerScreen Navigation: Simple approach - journeyId='$journeyId', episodeId='$episodeId'")
             val playerViewModel: PlayerViewModel = hiltViewModel()
             
-            // Look up the journey and episode data from JourneyViewModel
+            // Use basic journeys from /v1/journeys/ endpoint (already includes episodes with audio URLs)
             val journeys by journeyViewModel.journeys.collectAsStateWithLifecycle()
-            println("PlayerScreen Navigation: Available journeys count: ${journeys.size}")
             
-            // Force data loading if journeys are empty
+            // Load journeys if not already loaded
             LaunchedEffect(Unit) {
                 if (journeys.isEmpty()) {
-                    println("PlayerScreen Navigation: Journeys empty, triggering data load...")
+                    println("PlayerScreen Navigation: Loading basic journeys...")
                     journeyViewModel.loadJourneys()
                 }
             }
             
-            if (journeys.isEmpty()) {
-                // Show loading screen while data is loading
+            // Find journey from basic journeys list - match by database ID first, then display name
+            val journey = journeys.find { 
+                it.journeyId == journeyId ||
+                it.JourneyName.equals(journeyId.replace("_", " "), ignoreCase = true)
+            }
+            
+            if (journey == null) {
+                // Show loading or error
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -250,120 +259,65 @@ fun NovaNavigation(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = Color(0xFFC1FF72))
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Loading episode...",
-                            color = Color.White,
-                            fontSize = 16.sp
-                        )
+                        if (journeys.isEmpty()) {
+                            CircularProgressIndicator(color = Color(0xFFC1FF72))
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Loading journeys...",
+                                color = Color.White,
+                                fontSize = 16.sp
+                            )
+                        } else {
+                            Text(
+                                text = "Journey not found: $journeyId",
+                                color = Color.White,
+                                fontSize = 16.sp
+                            )
+                        }
                     }
                 }
                 return@composable
             }
             
-            journeys.forEach { journey ->
-                println("PlayerScreen Navigation: Available journey: '${journey.JourneyName}' with ${journey.episodes.size} episodes")
-            }
+            // Parse episode number
+            val episodeNumber = episodeId.removePrefix("episode_").toIntOrNull() ?: 1
+            val episode = journey.episodes.find { it.episodeNumber == episodeNumber }
             
-            // More robust parsing and lookup
-            val decodedJourneyId = try {
-                journeyId.replace("_", " ")
-            } catch (e: Exception) {
-                println("PlayerScreen Navigation: Error decoding journeyId: $journeyId - ${e.message}")
-                ""
-            }
-            println("PlayerScreen Navigation: Decoded journey ID: '$decodedJourneyId'")
-            
-            val journey = journeys.find { it.JourneyName.equals(decodedJourneyId, ignoreCase = true) }
-            println("PlayerScreen Navigation: Found journey: ${journey?.JourneyName ?: "NOT FOUND"}")
-            
-            val episodeNumber = try {
-                episodeId.removePrefix("episode_").toIntOrNull() ?: journey?.episodes?.firstOrNull()?.episodeNumber ?: 1
-            } catch (e: Exception) {
-                println("PlayerScreen Navigation: Error parsing episodeId: $episodeId - ${e.message}")
-                1
-            }
-            println("PlayerScreen Navigation: Parsed episode number: $episodeNumber")
-            
-            val episode = journey?.episodes?.find { it.episodeNumber == episodeNumber }
-            println("PlayerScreen Navigation: Found episode: ${episode?.title ?: "NOT FOUND"}")
-            if (episode != null) {
-                println("PlayerScreen Navigation: Episode audio URL: ${episode.audioUrl}")
-            }
-            
-            if (journey != null && episode != null) {
-                println("PlayerScreen Navigation: Rendering PlayerScreen component")
-                PlayerScreen(
-                    journey = journey,
-                    episode = episode,
-                    playerViewModel = playerViewModel,
-                    journeyViewModel = journeyViewModel,
-                    authPrefs = authViewModel.getAuthPreferences(),
-                    onBackPress = {
-                        // Go back to episodes page if possible, otherwise to journeys
-                        if (!navController.popBackStack()) {
-                            navController.navigate(Routes.EXPLORE_JOURNEYS) {
-                                popUpTo(Routes.HOME) { inclusive = false }
-                            }
-                        }
-                    },
-                    onProfileClick = {
-                        navController.navigate(Routes.USER_PROFILE)
-                    }
-                )
-            } else {
-                // Handle error case - journey or episode not found
-                println("PlayerScreen Navigation: ERROR - Journey or episode not found!")
-                println("PlayerScreen Navigation: Journey found: ${journey != null}")
-                println("PlayerScreen Navigation: Episode found: ${episode != null}")
-                if (journey == null) {
-                    println("PlayerScreen Navigation: Available journey names:")
-                    journeys.forEach { j ->
-                        println("PlayerScreen Navigation:   - '${j.JourneyName}'")
-                    }
-                }
-                if (journey != null && episode == null) {
-                    println("PlayerScreen Navigation: Available episodes in journey '${journey.JourneyName}':")
-                    journey.episodes.forEach { ep ->
-                        println("PlayerScreen Navigation:   - Episode ${ep.episodeNumber}: '${ep.title}'")
-                    }
-                }
-                
-                // Show error screen or navigate back
+            if (episode == null) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(Color.Black),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "❌ Episode not found",
-                            color = Color.Red,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Journey: ${journeyId} → ${decodedJourneyId}",
-                            color = Color.White,
-                            fontSize = 14.sp
-                        )
-                        Text(
-                            text = "Episode: ${episodeId} → ${episodeNumber}",
-                            color = Color.White,
-                            fontSize = 14.sp
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(
-                            onClick = { navController.popBackStack() }
-                        ) {
-                            Text("Go Back")
+                    Text(
+                        text = "Episode not found: $episodeNumber",
+                        color = Color.White,
+                        fontSize = 16.sp
+                    )
+                }
+                return@composable
+            }
+            
+            println("PlayerScreen Navigation: Found journey='${journey.JourneyName}' episode='${episode.title}'")
+            
+            PlayerScreen(
+                journey = journey,
+                episode = episode,
+                playerViewModel = playerViewModel,
+                journeyViewModel = journeyViewModel,
+                authPrefs = authViewModel.getAuthPreferences(),
+                onBackPress = {
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Routes.EXPLORE_JOURNEYS) {
+                            popUpTo(Routes.HOME) { inclusive = false }
                         }
                     }
+                },
+                onProfileClick = {
+                    navController.navigate(Routes.USER_PROFILE)
                 }
-            }
+            )
         }
         
         composable(Routes.FEEDBACK) {

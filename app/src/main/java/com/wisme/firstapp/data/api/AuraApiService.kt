@@ -51,7 +51,7 @@ interface AuraApiService {
     ): Response<CreateUserProfileResponse>
     
     @GET("users/profile/me")
-    suspend fun getMyProfile(@Header("Authorization") token: String): Response<UserProfileResponse>
+    suspend fun getMyProfile(@Header("Authorization") token: String): Response<UserProfile>
     
     @PUT("users/profile/me")
     suspend fun updateMyProfile(
@@ -158,7 +158,7 @@ interface AuraApiService {
         @Header("Authorization") token: String,
         @Query("limit") limit: Int = 50,
         @Query("offset") offset: Int = 0
-    ): Response<FeedbackSubmissionsResponse>
+    ): Response<List<FeedbackSubmissionResponse>>
     
     @DELETE("feedback/my-submissions/{submission_id}")
     suspend fun deleteFeedbackSubmission(
@@ -359,20 +359,19 @@ data class CreateUserProfileResponse(
 )
 
 data class UpdateUserProfileRequest(
+    val name: String?,
     val display_name: String?,
+    val date_of_birth: String?,
+    val gender: String?,
     val profession: String?,
     val avatar_id: Int?
 )
 
 data class UserProfileResponse(
-    val user_id: String,
-    val avatar_id: Int,
-    val name: String,
-    val display_name: String,
-    val date_of_birth: String,
-    val gender: String,
-    val profession: String,
-    val created_at: String?
+    val success: Boolean,
+    val message: String,
+    val user: UserProfile,
+    val user_id: String
 )
 
 data class UserProfile(
@@ -380,10 +379,14 @@ data class UserProfile(
     val avatar_id: Int,
     val name: String,
     val display_name: String,
+    val email: String?,
     val date_of_birth: String,
+    val age: Int,
     val gender: String,
     val profession: String,
-    val created_at: String
+    val created_at: String,
+    val updated_at: String?, 
+    val is_profile_complete: Boolean
 )
 
 data class UserIdResponse(
@@ -530,12 +533,14 @@ data class FeedbackResponseItem(
 )
 
 data class FeedbackSubmissionResponse(
-    val submission_id: String,
+    val id: String?, // Backend uses 'id' not 'submission_id'  
     val feedback_type: String,
-    val context_id: String,
+    val context_id: String?,
     val user_id: String,
     val responses: List<FeedbackResponseItem>,
-    val submitted_at: String
+    val submitted_at: String,
+    val created_at: String,
+    val updated_at: String?
 )
 
 data class FeedbackQuestionResponse(

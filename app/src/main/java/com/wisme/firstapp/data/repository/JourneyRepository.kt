@@ -190,6 +190,7 @@ class JourneyRepository @Inject constructor(
             JourneyName = apiJourney.title,
             JourneyDescription = apiJourney.description,
             JourneyImg = apiJourney.journey_id, // Using journey_id as image identifier
+            journeyId = apiJourney.journey_id, // Database ID for API calls
             totalDurationMinutes = apiJourney.total_duration_minutes,
             episodes = episodes
         )
@@ -227,7 +228,17 @@ class JourneyRepository @Inject constructor(
             
             if (response.isSuccessful && response.body()?.success == true) {
                 val body = response.body()!!
-                val audioUrl = body.audio_url ?: ""
+                val rawAudioUrl = body.audio_url ?: ""
+                
+                // Convert relative path to full URL
+                val audioUrl = if (rawAudioUrl.isNotEmpty() && !rawAudioUrl.startsWith("http")) {
+                    "https://aura-backend-ok92.onrender.com/$rawAudioUrl"
+                } else {
+                    rawAudioUrl
+                }
+                
+                println("JourneyRepository: Raw audio URL from API: '$rawAudioUrl'")
+                println("JourneyRepository: Full audio URL: '$audioUrl'")
                 
                 // Create progress object
                 val progress = EpisodeProgress(
@@ -264,6 +275,40 @@ class JourneyRepository @Inject constructor(
                 success = false,
                 errorMessage = "Exception: ${e.message}"
             )
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Start episode and get streaming URL from backend
+     */
+    suspend fun getEpisodeStreamingUrl(
+        token: String, 
+        journeyId: String, 
+        episodeId: String,
+        useTestEndpoint: Boolean = false
+    ): Result<String> {
+        return try {
+            val response = if (useTestEndpoint) {
+                apiService.startEpisodeTest(journeyId, episodeId)
+            } else {
+                if (token.isEmpty()) {
+                    return Result.failure(Exception("Authentication token required"))
+                }
+                apiService.startEpisode("Bearer $token", journeyId, episodeId)
+            }
+            
+            if (response.isSuccessful && response.body()?.success == true) {
+                val audioUrl = response.body()!!.audio_url
+                println("JourneyRepository: Got streaming URL: $audioUrl")
+                Result.success(audioUrl)
+            } else {
+                val errorMessage = "Failed to get streaming URL: ${response.code()} ${response.message()}"
+                println("JourneyRepository: $errorMessage")
+                Result.failure(Exception(errorMessage))
+            }
+        } catch (e: Exception) {
+            println("JourneyRepository: Exception getting streaming URL: ${e.message}")
             Result.failure(e)
         }
     }
@@ -389,7 +434,7 @@ class JourneyRepository @Inject constructor(
             title = apiEpisode.title,
             description = apiEpisode.description,
             durationMinutes = apiEpisode.duration_minutes,
-            audioUrl = "", // Will be populated when episode is started
+            audioUrl = "", // Don't use relative path - get signed URL from start episode endpoint
             isCompleted = progress?.isCompleted ?: false
         )
     }

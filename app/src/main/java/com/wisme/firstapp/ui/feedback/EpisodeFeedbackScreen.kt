@@ -23,6 +23,9 @@ import com.wisme.firstapp.theme.AppTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.Surface
 import com.wisme.firstapp.data.local.AuthPreferences
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.wisme.firstapp.ui.profile.UserProfileViewModel
+import androidx.compose.runtime.collectAsState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,8 +42,17 @@ fun EpisodeFeedbackScreen(
     val feedbackState by feedbackViewModel.episodeFeedbackState.collectAsStateWithLifecycle()
     val currentEpisode by feedbackViewModel.currentFeedbackEpisode.collectAsStateWithLifecycle()
     
-    // Get user data from preferences (same as HomeScreen)
-    val userName = remember { authPrefs.userDisplayName ?: authPrefs.userName ?: "Welcome" }
+    // Get user profile view model for real user data
+    val userProfileViewModel: UserProfileViewModel = hiltViewModel()
+    val userProfile by userProfileViewModel.userProfile.collectAsState()
+    
+    // Get user data - use API data if available, otherwise use cached preferences
+    val currentProfile = userProfile
+    val userName = if (currentProfile != null) {
+        currentProfile.display_name
+    } else {
+        authPrefs.userDisplayName ?: authPrefs.userName ?: "Welcome"
+    }
     
     // Load previous responses when screen opens
     LaunchedEffect(episodeId) {

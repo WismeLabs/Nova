@@ -570,11 +570,13 @@ class AuthViewModel @Inject constructor(
                 val firebaseToken = authPrefs.firebaseToken
                 if (!firebaseToken.isNullOrBlank()) {
                     try {
-                        // Note: Backend currently only supports display_name, profession, avatar_id
-                        // BACKEND REQUIREMENT: Expand PUT /users/profile/me to support name, date_of_birth, gender
+                        // Backend now supports all profile fields
                         val result = authRepository.updateMyProfile(
                             firebaseToken = firebaseToken,
+                            name = name,
                             displayName = displayName,
+                            dateOfBirth = dateOfBirth,
+                            gender = gender,
                             profession = profession,
                             avatarId = avatarId
                         )
@@ -582,10 +584,10 @@ class AuthViewModel @Inject constructor(
                         if (result.isFailure) {
                             Logger.e("Failed to update profile online: ${result.exceptionOrNull()?.message}", "AUTH_VM")
                             // Note: Keep local changes even if online update fails
-                            _errorMessage.value = "Profile updated locally. Online sync will retry when backend supports all fields."
+                            _errorMessage.value = "Profile updated locally. Online sync will retry when connection improves."
                         } else {
-                            Logger.d("Profile updated successfully online (partial fields)", "AUTH_VM")
-                            _errorMessage.value = "Profile updated. Note: Name, date of birth, and gender updates are pending backend support."
+                            Logger.d("Profile updated successfully online (all fields)", "AUTH_VM")
+                            _errorMessage.value = null // Clear any previous errors
                         }
                     } catch (e: Exception) {
                         Logger.e("Error updating profile online: ${e.message}", "AUTH_VM")

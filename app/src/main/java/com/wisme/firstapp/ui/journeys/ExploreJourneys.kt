@@ -23,7 +23,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,16 +43,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.wisme.firstapp.R
+import com.wisme.firstapp.data.local.AuthPreferences
 import com.wisme.firstapp.domain.JourneysDataClass
 //import com.wisme.firstapp.domain.EpisodeDataClass
+import com.wisme.firstapp.ui.common.Scaffold
 import com.wisme.firstapp.viewmodel.JourneyViewModel
 
 @Composable
 fun ExploreJourneys(
     viewModel: JourneyViewModel = hiltViewModel(),
+    authPrefs: AuthPreferences,
     onJourneyClick: (JourneysDataClass) -> Unit = {},
     onNavigateToHome: () -> Unit = {},
-    onNavigateToFeedback: () -> Unit = {}
+    onNavigateToFeedback: () -> Unit = {},
+    onProfileClick: () -> Unit = {}
 ) {
     val journeys by viewModel.journeys.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -63,9 +66,11 @@ fun ExploreJourneys(
         journeys = journeys,
         isLoading = isLoading,
         errorMessage = errorMessage,
+        authPrefs = authPrefs,
         onJourneyClick = onJourneyClick,
         onNavigateToHome = onNavigateToHome,
-        onNavigateToFeedback = onNavigateToFeedback
+        onNavigateToFeedback = onNavigateToFeedback,
+        onProfileClick = onProfileClick
     )
 }
 
@@ -74,24 +79,38 @@ fun ExploreJourneysContent(
     journeys: List<JourneysDataClass>,
     isLoading: Boolean = false,
     errorMessage: String? = null,
+    authPrefs: AuthPreferences,
     onJourneyClick: (JourneysDataClass) -> Unit = {},
     onNavigateToHome: () -> Unit = {},
-    onNavigateToFeedback: () -> Unit = {}
+    onNavigateToFeedback: () -> Unit = {},
+    onProfileClick: () -> Unit = {}
 ) {
-    Scaffold(
-        containerColor = Color.Black,
-        bottomBar = {
-            ExploreJourneysBottomNavigationBar(
-                onNavigateToHome = onNavigateToHome,
-                onNavigateToFeedback = onNavigateToFeedback
-            )
+    // Get user data for header
+    val username = remember { authPrefs.userDisplayName ?: authPrefs.userName ?: "Explorer" }
+    val userAvatarId = remember { authPrefs.userAvatarId }
+    val avatarResource = remember(userAvatarId) {
+        when (userAvatarId) {
+            1 -> R.drawable.avatar_1
+            2 -> R.drawable.avatar_2
+            3 -> R.drawable.avatar_3
+            4 -> R.drawable.avatar_4
+            5 -> R.drawable.avatar_5
+            else -> R.drawable.avatar_1 // Default fallback
         }
+    }
+
+    Scaffold(
+        username = username,
+        avatarResId = avatarResource,
+        onAvatarClick = onProfileClick,
+        onNavigateToHome = onNavigateToHome,
+        onNavigateToFeedback = onNavigateToFeedback
     ) { paddingValues ->
         Column(
             Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 39.dp, vertical = 85.dp)
+                .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
             Text(
                 text = "Choose Your Journey",
@@ -280,6 +299,7 @@ fun ExploreJourneysPreview() {
             JourneyName = "DSA / Cracking Coding Interviews", 
             JourneyDescription = "Help students crack coding interviews, from basics to advanced topics",
             JourneyImg = "journey1",
+            journeyId = "dsa_coding_interviews", // Database ID
             totalDurationMinutes = 0, // Will be fetched dynamically from audio files
             episodes = listOf() // Empty for preview
         ),
@@ -287,6 +307,7 @@ fun ExploreJourneysPreview() {
             JourneyName = "Personal Finance", 
             JourneyDescription = "Teach foundational personal finance and modern investment trends",
             JourneyImg = "journey2",
+            journeyId = "personal_finance", // Database ID
             totalDurationMinutes = 0,
             episodes = listOf()
         ),
@@ -294,16 +315,52 @@ fun ExploreJourneysPreview() {
             JourneyName = "How to win Hackathons", 
             JourneyDescription = "Equip students with proven strategies to consistently perform and win hackathons",
             JourneyImg = "journey3",
+            journeyId = "hackathon_success", // Database ID
             totalDurationMinutes = 0,
             episodes = listOf()
         )
     )
     
-    ExploreJourneysContent(
-        journeys = sampleJourneys,
-        isLoading = false,
-        errorMessage = null
-    )
+    // Simplified preview using Material3 Scaffold instead of custom one
+    androidx.compose.material3.Scaffold(
+        containerColor = Color.Black,
+        topBar = {
+            Text(
+                text = "Hi Explorer! 👋",
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = 20.dp, vertical = 16.dp)
+        ) {
+            Text(
+                text = "Choose Your Journey",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 24.sp,
+                color = Color.White
+            )
+            
+            LazyColumn(
+                contentPadding = PaddingValues(vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(sampleJourneys) { journey ->
+                    JourneyItem(
+                        journey = journey,
+                        onJourneyClick = { }
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable

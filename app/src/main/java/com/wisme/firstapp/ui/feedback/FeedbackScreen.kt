@@ -2,6 +2,7 @@ package com.wisme.firstapp.ui.feedback
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -21,6 +22,11 @@ import com.wisme.firstapp.theme.AppTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.Surface
 import com.wisme.firstapp.data.local.AuthPreferences
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.wisme.firstapp.ui.profile.UserProfileViewModel
+import androidx.compose.runtime.collectAsState
+import com.wisme.firstapp.R
+import com.wisme.firstapp.ui.common.TopAppBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,15 +37,43 @@ fun FeedbackScreen(
     onJourneyFeedbackClick: () -> Unit = {},
     onGeneralFeedbackClick: () -> Unit = {},
     onNavigateToHome: () -> Unit = {},
-    onNavigateToJourneys: () -> Unit = {}
+    onNavigateToJourneys: () -> Unit = {},
+    onNavigateToUserProfile: () -> Unit = {}
 ) {
     // Collect states from ViewModel
     val shouldShowEpisode = feedbackViewModel.shouldShowEpisodeFeedback()
     val shouldShowJourney = feedbackViewModel.shouldShowJourneyFeedback()
     val hasSubmittedGeneral by feedbackViewModel.hasSubmittedGeneralFeedback.collectAsStateWithLifecycle()
     
-    // Get user data from preferences (same as HomeScreen)
-    val userName = remember { authPrefs.userDisplayName ?: authPrefs.userName ?: "Welcome" }
+    // Get user profile view model for real user data
+    val userProfileViewModel: UserProfileViewModel = hiltViewModel()
+    val userProfile by userProfileViewModel.userProfile.collectAsState()
+    
+    // Get user data - use API data if available, otherwise use cached preferences
+    val currentProfile = userProfile
+    val userName = if (currentProfile != null) {
+        currentProfile.display_name
+    } else {
+        authPrefs.userDisplayName ?: authPrefs.userName ?: "Welcome"
+    }
+    
+    val userAvatarId = if (currentProfile != null) {
+        currentProfile.avatar_id
+    } else {
+        authPrefs.userAvatarId
+    }
+    
+    // Map avatar ID to drawable resource
+    val avatarResource = remember(userAvatarId) {
+        when (userAvatarId) {
+            1 -> R.drawable.avatar_1
+            2 -> R.drawable.avatar_2
+            3 -> R.drawable.avatar_3
+            4 -> R.drawable.avatar_4
+            5 -> R.drawable.avatar_5
+            else -> R.drawable.avatar_1 // Default fallback
+        }
+    }
     
     // Refresh feedback states when screen is opened
     LaunchedEffect(Unit) {
@@ -49,8 +83,12 @@ fun FeedbackScreen(
         onNavigateToHome = onNavigateToHome,
         onNavigateToJourneys = onNavigateToJourneys,
         onNavigateToFeedback = { }, // Already on feedback screen
-        currentRoute = "feedback"
+        currentRoute = "feedback",
+        username = userName,
+        avatarResId = avatarResource,
+        onAvatarClick = onNavigateToUserProfile
     ) { paddingValues ->
+        // Content with proper padding
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -58,57 +96,39 @@ fun FeedbackScreen(
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-        // Personalized greeting and title
-        Column(
-            modifier = Modifier.padding(bottom = 8.dp)
-        ) {
-            Text(
-                text = "Hi $userName! 👋",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color(0xFFC1FF72)
-            )
-            Text(
-                text = "Research & Feedback",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-        }
-        
-        // Feedback Cards - Always show all cards
-        println("FeedbackScreen: Rendering Episode Feedback card - shouldShow=$shouldShowEpisode")
-        // Episode Feedback
-        FeedbackCard(
-            title = "Episode Feedback",
-            subtitle = "Share your thoughts on individual episodes",
-            buttonLabel = if (shouldShowEpisode) "Give Episode Feedback" else "Complete an episode to answer",
-            enabled = shouldShowEpisode,
-            onClick = { if (shouldShowEpisode) onEpisodeFeedbackClick() }
-        )
-        
-        println("FeedbackScreen: Rendering Journey Feedback card - shouldShow=$shouldShowJourney")
-        // Journey Feedback
-        FeedbackCard(
-            title = "Journey Feedback", 
-            subtitle = "Compare and evaluate complete learning journeys",
-            buttonLabel = if (shouldShowJourney) "Give Journey Feedback" else "Complete a journey to answer",
-            enabled = shouldShowJourney,
-            onClick = { if (shouldShowJourney) onJourneyFeedbackClick() }
-        )
-        
-        println("FeedbackScreen: Rendering General Feedback card (Research Studies) - always enabled")
-        // General Feedback - Always enabled
-        FeedbackCard(
-            title = "Research Studies",
-            subtitle = "Participate in our broader research study",
-            buttonLabel = "Give General Feedback",
-            enabled = true,
-            onClick = {
-                println("FeedbackScreen: General feedback card clicked")
-                onGeneralFeedbackClick()
-            }
-        )
+                // Feedback Cards - Always show all cards (removed redundant title)
+                println("FeedbackScreen: Rendering Episode Feedback card - shouldShow=$shouldShowEpisode")
+                // Episode Feedback
+                FeedbackCard(
+                    title = "Episode Feedback",
+                    subtitle = "Share your thoughts on individual episodes",
+                    buttonLabel = if (shouldShowEpisode) "Give Episode Feedback" else "Complete an episode to answer",
+                    enabled = shouldShowEpisode,
+                    onClick = { if (shouldShowEpisode) onEpisodeFeedbackClick() }
+                )
+                
+                println("FeedbackScreen: Rendering Journey Feedback card - shouldShow=$shouldShowJourney")
+                // Journey Feedback
+                FeedbackCard(
+                    title = "Journey Feedback", 
+                    subtitle = "Compare and evaluate complete learning journeys",
+                    buttonLabel = if (shouldShowJourney) "Give Journey Feedback" else "Complete a journey to answer",
+                    enabled = shouldShowJourney,
+                    onClick = { if (shouldShowJourney) onJourneyFeedbackClick() }
+                )
+                
+                println("FeedbackScreen: Rendering General Feedback card (Research Studies) - always enabled")
+                // General Feedback - Always enabled
+                FeedbackCard(
+                    title = "Research Studies",
+                    subtitle = "Participate in our broader research study",
+                    buttonLabel = "Give General Feedback",
+                    enabled = true,
+                    onClick = {
+                        println("FeedbackScreen: General feedback card clicked")
+                        onGeneralFeedbackClick()
+                    }
+                )
         }
     }
 }

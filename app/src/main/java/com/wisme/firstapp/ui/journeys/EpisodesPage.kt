@@ -304,7 +304,8 @@ fun EpisodesScreenPreview() {
     val sampleJourney = JourneysDataClass(
         JourneyName = "Human Psychology",
         JourneyDescription = "Discover the fascinating world of human psychology and understand what drives our behaviour",
-        JourneyImg = ""
+        JourneyImg = "",
+        journeyId = "human_psychology" // Sample database ID
     )
 
     val sampleEpisodes = listOf(

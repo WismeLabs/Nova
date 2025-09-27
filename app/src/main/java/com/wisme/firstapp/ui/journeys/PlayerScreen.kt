@@ -79,9 +79,11 @@ fun PlayerScreen(
     // Set current episode in PlayerViewModel for progress tracking and start episode
     LaunchedEffect(journey.JourneyName, currentEpisode.episodeNumber) {
         try {
-            val journeyId = journey.JourneyName
+            val journeyId = journey.journeyId // Use database ID instead of display name
             val episodeId = "episode_${currentEpisode.episodeNumber}"
             println("PlayerScreen: Setting up episode - $journeyId/$episodeId")
+            println("PlayerScreen: Journey Display Name: ${journey.JourneyName}")
+            println("PlayerScreen: Journey Database ID: $journeyId")
             println("PlayerScreen: Episode audioUrl: ${currentEpisode.audioUrl}")
             println("PlayerScreen: Episode duration: ${currentEpisode.durationMinutes} minutes")
             
@@ -100,6 +102,14 @@ fun PlayerScreen(
         }
     }
     
+    // Stop audio when user navigates away from player screen
+    DisposableEffect(Unit) {
+        onDispose {
+            println("PlayerScreen: *** USER NAVIGATED AWAY - STOPPING AUDIO ***")
+            playerViewModel.stopAudio()
+        }
+    }
+    
     // Use progress percentage from ViewModel (which includes completion logic)
     val completionPercentage = progressPercentage / 100f
     
@@ -109,7 +119,7 @@ fun PlayerScreen(
     // Sync progress to JourneyViewModel periodically and on significant changes
     LaunchedEffect(progressPercentage, currentPosition) {
         if (progressPercentage > 0) {
-            val journeyId = journey.JourneyName
+            val journeyId = journey.journeyId // Use database ID instead of display name
             val episodeId = "episode_${currentEpisode.episodeNumber}"
             journeyViewModel.updateEpisodeProgress(
                 journeyId = journeyId,
@@ -180,7 +190,7 @@ fun PlayerScreen(
                     currentEpisode = newEpisode
                     
                     // Set new episode in PlayerViewModel for progress tracking
-                    val journeyId = journey.JourneyName
+                    val journeyId = journey.journeyId // Use database ID instead of display name
                     val episodeId = "episode_${currentEpisode.episodeNumber}"
                     println("PlayerScreen: Switching to previous episode: ${newEpisode.title}")
                     playerViewModel.setCurrentEpisode(
@@ -215,7 +225,7 @@ fun PlayerScreen(
                     currentEpisode = newEpisode
                     
                     // Set new episode in PlayerViewModel for progress tracking
-                    val journeyId = journey.JourneyName
+                    val journeyId = journey.journeyId // Use database ID instead of display name
                     val episodeId = "episode_${currentEpisode.episodeNumber}"
                     println("PlayerScreen: Switching to next episode: ${newEpisode.title}")
                     playerViewModel.setCurrentEpisode(
@@ -257,7 +267,7 @@ fun PlayerScreen(
                     currentEpisode = newEpisode
                     
                     // Set new episode in PlayerViewModel for progress tracking
-                    val journeyId = journey.JourneyName
+                    val journeyId = journey.journeyId // Use database ID instead of display name
                     val episodeId = "episode_${currentEpisode.episodeNumber}"
                     println("PlayerScreen: Switching to selected episode: ${newEpisode.title}")
                     playerViewModel.setCurrentEpisode(
@@ -728,6 +738,7 @@ fun PlayerScreenPreview() {
         JourneyName = "Data Structures",
         JourneyDescription = "A comprehensive guide to data structures.",
         JourneyImg = "",
+        journeyId = "data_structures", // Sample database ID
         episodes = sampleEpisodes
     )
 

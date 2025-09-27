@@ -32,8 +32,7 @@ class JourneyViewModel @Inject constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
-    private val _selectedJourney = MutableStateFlow<JourneysDataClass?>(null)
-    val selectedJourney: StateFlow<JourneysDataClass?> = _selectedJourney.asStateFlow()
+    // Removed selectedJourney - using simple journeys list from /v1/journeys/ endpoint
 
     // Progress tracking state
     private val _continueLearning = MutableStateFlow<Pair<String, String>?>(null)
@@ -109,32 +108,7 @@ class JourneyViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Load detailed journey with episodes
-     */
-    fun loadJourneyDetails(journeyId: String) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            _errorMessage.value = null
-
-            val token = authPrefs.firebaseToken
-            if (token.isNullOrEmpty()) {
-                _errorMessage.value = "Authentication token not found"
-                _isLoading.value = false
-                return@launch
-            }
-
-            journeyRepository.getJourneyWithEpisodes(token, journeyId)
-                .onSuccess { journey ->
-                    _selectedJourney.value = journey
-                }
-                .onFailure { exception ->
-                    _errorMessage.value = exception.message ?: "Failed to load journey details"
-                }
-
-            _isLoading.value = false
-        }
-    }
+    // Removed loadJourneyDetails - using simple approach with basic journeys + start episode endpoint
 
     /**
      * Retry loading journeys
@@ -323,7 +297,7 @@ class JourneyViewModel @Inject constructor(
      * Calculate completion rate for a journey
      */
     fun getJourneyCompletionRate(journeyId: String): Float {
-        val journey = _selectedJourney.value
+        val journey = _journeys.value.find { it.journeyId == journeyId }
         if (journey == null || journey.episodes.isNullOrEmpty()) return 0f
         
         val totalEpisodes = journey.episodes.size

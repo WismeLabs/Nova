@@ -2,12 +2,19 @@ package com.wisme.firstapp.data.repository
 
 import android.util.Log
 import com.wisme.firstapp.data.local.AuthPreferences
+import com.wisme.firstapp.data.api.AuraApiService
+import com.wisme.firstapp.data.api.FeedbackSubmissionRequest
+import com.wisme.firstapp.data.api.FeedbackResponseItem
 import com.wisme.firstapp.ui.feedback.EpisodeFeedbackData
 import com.wisme.firstapp.ui.feedback.JourneyFeedbackData
 import com.wisme.firstapp.ui.feedback.GeneralFeedbackData
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -43,7 +50,7 @@ data class FeedbackSubmission(
 
 @Serializable
 data class FeedbackSubmissionResponse(
-    val submission_id: String,
+    val submission_id: String?,
     val feedback_type: String,
     val context_id: String,
     val user_id: String,
@@ -66,6 +73,7 @@ sealed class FeedbackResult<T> {
 @Singleton
 class FeedbackRepository @Inject constructor(
     private val authPreferences: AuthPreferences,
+    private val apiService: AuraApiService,
     private val client: OkHttpClient,
     private val json: Json,
     private val feedbackQuestionDao: com.wisme.firstapp.data.local.dao.FeedbackQuestionDao,
@@ -96,16 +104,19 @@ class FeedbackRepository @Inject constructor(
             if (networkConnectivityManager.isCurrentlyOnline()) {
                 // Online: fetch from API and update cache
                 try {
-                    val request = Request.Builder()
-                        .url("$BASE_URL/feedback/questions/$feedbackType")
-                        .get()
-                        .build()
+                    val response = withContext(Dispatchers.IO) {
+                        apiService.getFeedbackQuestions(feedbackType)
+                    }
 
-                    val response = client.newCall(request).execute()
-                    val responseBody = response.body?.string()
-
-                    if (response.isSuccessful && responseBody != null) {
-                        val apiQuestions = json.decodeFromString<List<FeedbackQuestion>>(responseBody)
+                    if (response.isSuccessful && response.body() != null) {
+                        val apiQuestions = response.body()!!.map { apiQuestion ->
+                            FeedbackQuestion(
+                                question_id = apiQuestion.question_id,
+                                question_text = apiQuestion.question_text,
+                                response_type = apiQuestion.response_type,
+                                options = apiQuestion.options
+                            )
+                        }
                         
                         // Update local cache
                         val entities = apiQuestions.map { it.toEntity(feedbackType) }
@@ -120,7 +131,7 @@ class FeedbackRepository @Inject constructor(
                             Log.w(TAG, "API failed, returning cached questions for $feedbackType")
                             FeedbackResult.Success(cachedQuestions.map { it.toApiModel() })
                         } else {
-                            val errorMsg = "Failed to fetch questions: ${response.code} - $responseBody"
+                            val errorMsg = "Failed to fetch questions: ${response.code()} - ${response.errorBody()?.string()}"
                             Log.e(TAG, errorMsg)
                             FeedbackResult.Error(errorMsg)
                         }
@@ -307,18 +318,18 @@ class FeedbackRepository @Inject constructor(
     }
     
     /**
-     * Sync a single submission to backend
+     * Sync a single submission to backend using API service
      */
     private suspend fun syncSubmissionToBackend(
         submission: FeedbackSubmissionEntity, 
         firebaseToken: String
     ): SyncResult {
         return try {
-            val apiSubmission = FeedbackSubmission(
+            val apiSubmission = FeedbackSubmissionRequest(
                 feedback_type = submission.feedbackType,
                 context_id = submission.contextId,
                 responses = submission.responses.map { 
-                    FeedbackResponse(
+                    FeedbackResponseItem(
                         question_id = it.questionId,
                         response_value = it.responseValue
                     )
@@ -327,31 +338,37 @@ class FeedbackRepository @Inject constructor(
 
             println("FeedbackRepository: Submitting feedback - Type: ${submission.feedbackType}, Context: ${submission.contextId}, Responses: ${apiSubmission.responses.size}")
             
-            val jsonBody = json.encodeToString(FeedbackSubmission.serializer(), apiSubmission)
-            println("FeedbackRepository: JSON payload: $jsonBody")
-            val requestBody = jsonBody.toRequestBody("application/json".toMediaType())
-            
-            val request = Request.Builder()
-                .url("$BASE_URL/feedback/submit")
-                .post(requestBody)
-                .addHeader("Authorization", "Bearer $firebaseToken")
-                .build()
+            val response = withContext(Dispatchers.IO) {
+                apiService.submitFeedback("Bearer $firebaseToken", apiSubmission)
+            }
 
-            println("FeedbackRepository: Making POST request to: $BASE_URL/feedback/submit")
-            val response = client.newCall(request).execute()
-            val responseBody = response.body?.string()
-
-            if (response.isSuccessful && responseBody != null) {
-                val apiResponse = json.decodeFromString<FeedbackSubmissionResponse>(responseBody)
-                println("FeedbackRepository: Feedback submitted successfully - ID: ${apiResponse.submission_id}")
+            if (response.isSuccessful && response.body() != null) {
+                val apiResponse = response.body()!!
+                println("FeedbackRepository: Feedback submitted successfully - ID: ${apiResponse.id}")
                 
-                SyncResult(isSuccess = true, response = apiResponse, error = null)
+                // Convert API response to local format
+                val localResponse = FeedbackSubmissionResponse(
+                    submission_id = apiResponse.id ?: "unknown", // Backend uses 'id' field
+                    feedback_type = apiResponse.feedback_type,
+                    context_id = apiResponse.context_id ?: "unknown",
+                    user_id = apiResponse.user_id,
+                    responses = apiResponse.responses.map { 
+                        FeedbackResponse(
+                            question_id = it.question_id,
+                            response_value = it.response_value
+                        )
+                    },
+                    submitted_at = apiResponse.submitted_at
+                )
+                
+                SyncResult(isSuccess = true, response = localResponse, error = null)
             } else {
-                val errorMessage = "HTTP ${response.code}: $responseBody"
+                val errorMessage = "HTTP ${response.code()}: ${response.errorBody()?.string()}"
                 println("FeedbackRepository: Feedback submission failed - $errorMessage")
                 SyncResult(isSuccess = false, response = null, error = errorMessage)
             }
         } catch (e: Exception) {
+            println("FeedbackRepository: Exception during submission - ${e.message}")
             SyncResult(isSuccess = false, response = null, error = e.message ?: "Unknown error")
         }
     }
@@ -399,10 +416,13 @@ class FeedbackRepository @Inject constructor(
             
             // If online, sync with backend in background (fire and forget)
             if (networkConnectivityManager.isCurrentlyOnline()) {
-                try {
-                    syncSubmissionsWithBackend(userId)
-                } catch (e: Exception) {
-                    Log.w(TAG, "Background sync failed, continuing with local data", e)
+                // Launch background sync in IO dispatcher to avoid NetworkOnMainThreadException
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        syncSubmissionsWithBackend(userId)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Background sync failed, continuing with local data", e)
+                    }
                 }
             }
             
@@ -414,31 +434,29 @@ class FeedbackRepository @Inject constructor(
     }
     
     /**
-     * Background sync of submissions with backend
+     * Background sync of submissions with backend using proper API service
      */
     private suspend fun syncSubmissionsWithBackend(userId: String) {
         try {
             val firebaseToken = authPreferences.firebaseToken
             if (firebaseToken.isNullOrBlank()) return
             
-            val request = Request.Builder()
-                .url("$BASE_URL/feedback/my-submissions?limit=100&offset=0")
-                .addHeader("Authorization", "Bearer $firebaseToken")
-                .get()
-                .build()
+            // Use the proper API service instead of manual HTTP calls
+            val response = apiService.getMyFeedbackSubmissions(
+                token = "Bearer $firebaseToken",
+                limit = 100,
+                offset = 0
+            )
 
-            val response = client.newCall(request).execute()
-            val responseBody = response.body?.string()
-
-            if (response.isSuccessful && responseBody != null) {
-                val backendResponse = json.decodeFromString<MyFeedbackSubmissionsResponse>(responseBody)
+            if (response.isSuccessful && response.body() != null) {
+                val backendSubmissions = response.body()!!
                 
                 // Update local database with backend data
-                val backendEntities = backendResponse.submissions.map { apiSubmission ->
+                val backendEntities = backendSubmissions.map { apiSubmission ->
                     com.wisme.firstapp.data.local.entities.FeedbackSubmissionEntity(
-                        submissionId = apiSubmission.submission_id,
+                        submissionId = apiSubmission.id ?: "unknown",
                         feedbackType = apiSubmission.feedback_type,
-                        contextId = apiSubmission.context_id,
+                        contextId = apiSubmission.context_id ?: "unknown",
                         userId = apiSubmission.user_id,
                         responses = apiSubmission.responses.map { 
                             com.wisme.firstapp.data.local.entities.FeedbackResponseLocal(

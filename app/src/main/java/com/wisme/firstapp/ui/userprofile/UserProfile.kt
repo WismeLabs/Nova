@@ -73,6 +73,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.wisme.firstapp.R
 import com.wisme.firstapp.viewmodel.AuthViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.wisme.firstapp.ui.profile.UserProfileViewModel
+import androidx.compose.runtime.collectAsState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,16 +87,52 @@ fun UserProfileScreen(
 ) {
     val authPrefs = authViewModel.getAuthPreferences()
     
-    // State variables for editing
+    // Get user profile view model for real user data
+    val userProfileViewModel: UserProfileViewModel = hiltViewModel()
+    val userProfile by userProfileViewModel.userProfile.collectAsState()
+    
+    // State variables for editing - use API data if available, otherwise cached preferences
     var isEditing by remember { mutableStateOf(false) }
-    var name by remember { mutableStateOf(authPrefs.userName ?: "") }
-    var displayName by remember { mutableStateOf(authPrefs.userDisplayName ?: "") }
-    var dob by remember { mutableStateOf(authPrefs.userDateOfBirth ?: "") }
-    var selectedGender by remember { mutableStateOf(authPrefs.userGender ?: "") }
+    
+    val currentProfile = userProfile
+    var name by remember(userProfile) { 
+        mutableStateOf(
+            if (currentProfile != null) currentProfile.name 
+            else authPrefs.userName ?: ""
+        ) 
+    }
+    var displayName by remember(userProfile) { 
+        mutableStateOf(
+            if (currentProfile != null) currentProfile.display_name 
+            else authPrefs.userDisplayName ?: ""
+        ) 
+    }
+    var dob by remember(userProfile) { 
+        mutableStateOf(
+            if (currentProfile != null) currentProfile.date_of_birth 
+            else authPrefs.userDateOfBirth ?: ""
+        ) 
+    }
+    var selectedGender by remember(userProfile) { 
+        mutableStateOf(
+            if (currentProfile != null) currentProfile.gender 
+            else authPrefs.userGender ?: ""
+        ) 
+    }
     var genderExpanded by remember { mutableStateOf(false) }
-    var selectedProfession by remember { mutableStateOf(authPrefs.userProfession ?: "") }
+    var selectedProfession by remember(userProfile) { 
+        mutableStateOf(
+            if (currentProfile != null) currentProfile.profession 
+            else authPrefs.userProfession ?: ""
+        ) 
+    }
     var professionExpanded by remember { mutableStateOf(false) }
-    var selectedAvatar by remember { mutableStateOf(authPrefs.userAvatarId ?: 1) }
+    var selectedAvatar by remember(userProfile) { 
+        mutableStateOf(
+            if (currentProfile != null) currentProfile.avatar_id 
+            else authPrefs.userAvatarId ?: 1
+        ) 
+    }
     var showDatePicker by remember { mutableStateOf(false) }
     
     // Error states
@@ -234,6 +273,9 @@ fun UserProfileScreen(
                                     profession = selectedProfession,
                                     avatarId = selectedAvatar
                                 )
+                                
+                                // Refresh the profile data to reflect changes
+                                userProfileViewModel.forceRefresh()
                                 
                                 isEditing = false
                                 focusManager.clearFocus()
