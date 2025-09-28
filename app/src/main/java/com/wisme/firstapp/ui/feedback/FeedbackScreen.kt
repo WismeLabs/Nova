@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wisme.firstapp.theme.AppTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
 import com.wisme.firstapp.data.local.AuthPreferences
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -92,6 +94,7 @@ fun FeedbackScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(paddingValues)
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
