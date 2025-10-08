@@ -18,6 +18,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.wisme.firstapp.ui.utils.ResponsiveTextStyles
+import com.wisme.firstapp.ui.utils.ResponsiveFontSizes
+import com.wisme.firstapp.ui.utils.ResponsiveSpacing
 import com.wisme.firstapp.viewmodel.FeedbackViewModel
 import com.wisme.firstapp.theme.AppTheme
 import kotlinx.coroutines.launch
@@ -110,19 +113,19 @@ fun JourneyFeedbackScreen(
             Column {
                 Text(
                     text = "Hi $userName! 👋",
-                    fontSize = 14.sp,
+                    fontSize = ResponsiveFontSizes.bodySmall(),
                     fontWeight = FontWeight.Medium,
                     color = Color(0xFFC1FF72)
                 )
                 Text(
                     text = "Journey Feedback",
-                    fontSize = 24.sp,
+                    fontSize = ResponsiveFontSizes.headingLarge(),
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
                 Text(
                     text = journeyTitle,
-                    fontSize = 16.sp,
+                    fontSize = ResponsiveFontSizes.body(),
                     color = Color.Gray
                 )
             }
@@ -159,13 +162,13 @@ fun JourneyFeedbackScreen(
                 ) {
                     Text(
                         text = "📊 Help us understand how we compare",
-                        fontSize = 17.sp,
+                        fontSize = ResponsiveFontSizes.body(),
                         fontWeight = FontWeight.SemiBold,
                         color = lightGreen
                     )
                     Text(
                         text = "Your feedback helps us improve and deliver better learning experiences.",
-                        fontSize = 15.sp,
+                        fontSize = ResponsiveFontSizes.body(),
                         color = Color(0xFFB0B0B0),
                         lineHeight = 22.sp
                     )
@@ -222,7 +225,7 @@ fun JourneyFeedbackScreen(
             ) {
                 Text(
                     text = "Skip",
-                    fontSize = 16.sp,
+                    fontSize = ResponsiveFontSizes.body(),
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -264,7 +267,7 @@ fun JourneyFeedbackScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Submit",
-                    fontSize = 16.sp,
+                    fontSize = ResponsiveFontSizes.body(),
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -285,7 +288,7 @@ fun JourneyFeedbackScreen(
                     text = error,
                     color = Color.Red,
                     modifier = Modifier.padding(16.dp),
-                    fontSize = 14.sp
+                    fontSize = ResponsiveFontSizes.bodySmall()
                 )
             }
         }
@@ -317,7 +320,7 @@ fun JourneyFeedbackScreen(
                         Text(
                             text = "Submitting feedback...",
                             color = Color.White,
-                            fontSize = 16.sp
+                            fontSize = ResponsiveFontSizes.body()
                         )
                     }
                 }
@@ -351,12 +354,12 @@ private fun FeedbackQuestionCard(
             ) {
                 Text(
                     text = icon,
-                    fontSize = 24.sp,
+                    fontSize = ResponsiveFontSizes.headingLarge(),
                     modifier = Modifier.padding(end = 16.dp)
                 )
                 Text(
                     text = question,
-                    fontSize = 18.sp,
+                    fontSize = ResponsiveFontSizes.bodyLarge(),
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White,
                     lineHeight = 26.sp,
@@ -417,7 +420,7 @@ private fun ComparisonOptionItem(
             
             Text(
                 text = option,
-                fontSize = 16.sp,
+                fontSize = ResponsiveFontSizes.body(),
                 fontWeight = FontWeight.Medium,
                 color = if (isSelected) lightGreen else Color(0xFFCCCCCC)
             )
@@ -450,14 +453,14 @@ fun JourneyFeedbackScreenPreview() {
                 Text(
                     text = "Journey Feedback Screen",
                     color = Color.White,
-                    fontSize = 24.sp,
+                    fontSize = ResponsiveFontSizes.headingLarge(),
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "DSA & Coding Interviews",
                     color = Color.White,
-                    fontSize = 18.sp
+                    fontSize = ResponsiveFontSizes.bodyLarge()
                 )
             }
         }

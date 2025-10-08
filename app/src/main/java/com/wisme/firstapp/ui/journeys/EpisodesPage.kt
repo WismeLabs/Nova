@@ -38,6 +38,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.wisme.firstapp.ui.utils.ResponsiveTextStyles
+import com.wisme.firstapp.ui.utils.ResponsiveFontSizes
+import com.wisme.firstapp.ui.utils.ResponsiveSpacing
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.wisme.firstapp.R
@@ -100,12 +103,12 @@ fun EpisodesPage(
                     Text(
                         text = "Loading journey...",
                         color = Color.White,
-                        fontSize = 16.sp
+                        fontSize = ResponsiveFontSizes.body()
                     )
                     Text(
                         text = "Journey: $journeyName",
                         color = Color.Gray,
-                        fontSize = 14.sp
+                        fontSize = ResponsiveFontSizes.bodySmall()
                     )
                 }
             }
@@ -146,7 +149,7 @@ fun EpisodesScreenContent(
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = "Personalised", color = Color(0XFFC1FF72), fontSize = 14.sp)
+                    Text(text = "Personalised", color = Color(0XFFC1FF72), fontSize = ResponsiveFontSizes.bodySmall())
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -175,14 +178,14 @@ fun EpisodesScreenContent(
                     )
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
-                        Text(text = journey.JourneyName, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                        Text(text = journey.JourneyName, color = Color.White, fontSize = ResponsiveFontSizes.headingLarge(), fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text(text = journey.JourneyDescription, color = Color.White, fontSize = 16.sp)
+                Text(text = journey.JourneyDescription, color = Color.White, fontSize = ResponsiveFontSizes.body())
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -190,9 +193,9 @@ fun EpisodesScreenContent(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(painter = painterResource(id = R.drawable.clock), contentDescription = "Episodes count", tint = Color.Unspecified, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "${episodes.size} episodes", color = textGreen, fontSize = 14.sp)
+                        Text(text = "${episodes.size} episodes", color = textGreen, fontSize = ResponsiveFontSizes.bodySmall())
                     }
-                    Text(text = "~32 minutes total", color = textGreen, fontSize = 14.sp)
+                    Text(text = "~32 minutes total", color = textGreen, fontSize = ResponsiveFontSizes.bodySmall())
                 }
                 Spacer(modifier = Modifier.height(32.dp))
             }
@@ -205,7 +208,7 @@ fun EpisodesScreenContent(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(text = "Episodes", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text(text = "Episodes", color = Color.White, fontSize = ResponsiveFontSizes.heading(), fontWeight = FontWeight.Bold)
                 TextButton(onClick = { 
                     println("EpisodesPage: 'Start from beginning' button clicked")
                     if (episodes.isNotEmpty()) {
@@ -257,15 +260,15 @@ fun EpisodeItem(
             Text(
                 text = episode.episodeNumber.toString(),
                 color = textGreen,
-                fontSize = 20.sp,
+                fontSize = ResponsiveFontSizes.heading(),
                 fontWeight = FontWeight.Bold
             )
         }
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = episode.title, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text(text = episode.title, color = Color.White, fontSize = ResponsiveFontSizes.body(), fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(4.dp))
-            Text(text = episode.description, color = Color.Gray, fontSize = 14.sp, maxLines = 2)
+            Text(text = episode.description, color = Color.Gray, fontSize = ResponsiveFontSizes.bodySmall(), maxLines = 2)
         }
         Spacer(modifier = Modifier.width(16.dp))
         IconButton(
@@ -293,7 +296,7 @@ fun InfoChip(text: String) {
             .background(olive)
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        Text(text = text, color = Color(0XFFe9ebe6), fontSize = 12.sp)
+        Text(text = text, color = Color(0XFFe9ebe6), fontSize = ResponsiveFontSizes.caption())
     }
 }
 

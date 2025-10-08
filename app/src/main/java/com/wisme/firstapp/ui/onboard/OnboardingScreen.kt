@@ -32,6 +32,7 @@ import com.wisme.firstapp.ui.common.IndicatorUI
 import kotlinx.coroutines.launch
 import com.wisme.firstapp.R
 import com.wisme.firstapp.ui.common.GradientButtonUi
+import com.wisme.firstapp.ui.utils.*
 import kotlin.collections.lastIndex
 
 val Gradient = Brush.horizontalGradient(
@@ -70,26 +71,31 @@ fun OnboardingScreen(onFinished: () -> Unit) {
                     text="Skip >",
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top=65.dp,end=20.dp)
+                        .padding(
+                            top = ResponsiveSpacing.extraLarge() + ResponsiveSpacing.medium(),
+                            end = ResponsiveSpacing.medium()
+                        )
                         .clickable { onFinished() },
                     textAlign = TextAlign.End,
                     color=MaterialTheme.colorScheme.primary,
-                    style = TextStyle(
-                        fontFamily = FontFamily(Font(R.font.inter_18pt_medium, FontWeight.Medium)),
-                        fontSize = 16.sp
+                    style = ResponsiveTextStyles.bodyMedium().copy(
+                        fontFamily = FontFamily(Font(R.font.inter_18pt_medium, FontWeight.Medium))
                     )
                 )
             } else {
-                Spacer(modifier = Modifier.height(85.dp))
+                Spacer(modifier = Modifier.height(ResponsiveSpacing.extraLarge() + ResponsiveSpacing.large()))
             }
         },
         bottomBar = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical =40.dp,horizontal = 20.dp),
+                    .padding(
+                        vertical = ResponsiveSpacing.extraLarge(),
+                        horizontal = ResponsiveSpacing.medium()
+                    ),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                verticalArrangement = Arrangement.spacedBy(ResponsiveSpacing.medium())
             ) {
                 IndicatorUI(
                     pageSize = pages.size,
@@ -99,9 +105,8 @@ fun OnboardingScreen(onFinished: () -> Unit) {
                     text = buttonState.value,
                     gradient = Gradient,
                     textColor = Color.Black,
-                    textStyle = TextStyle(
-                        fontFamily = FontFamily(Font(R.font.inter_18pt_semibold, FontWeight.Medium)),
-                        fontSize = 16.sp
+                    textStyle = ResponsiveTextStyles.labelLarge().copy(
+                        fontFamily = FontFamily(Font(R.font.inter_18pt_semibold, FontWeight.Medium))
                     )
 
                 ) {

@@ -28,6 +28,9 @@ import com.wisme.firstapp.ui.topic.TopicRequestScreen
 import com.wisme.firstapp.viewmodel.AuthViewModel
 import com.wisme.firstapp.viewmodel.JourneyViewModel
 import com.wisme.firstapp.viewmodel.FeedbackViewModel
+import com.wisme.firstapp.ui.utils.ResponsiveTextStyles
+import com.wisme.firstapp.ui.utils.ResponsiveFontSizes
+import com.wisme.firstapp.ui.utils.ResponsiveSpacing
 import com.wisme.firstapp.viewmodel.PlayerViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 
@@ -265,13 +268,13 @@ fun NovaNavigation(
                             Text(
                                 text = "Loading journeys...",
                                 color = Color.White,
-                                fontSize = 16.sp
+                                fontSize = ResponsiveFontSizes.body()
                             )
                         } else {
                             Text(
                                 text = "Journey not found: $journeyId",
                                 color = Color.White,
-                                fontSize = 16.sp
+                                fontSize = ResponsiveFontSizes.body()
                             )
                         }
                     }
@@ -293,7 +296,7 @@ fun NovaNavigation(
                     Text(
                         text = "Episode not found: $episodeNumber",
                         color = Color.White,
-                        fontSize = 16.sp
+                        fontSize = ResponsiveFontSizes.body()
                     )
                 }
                 return@composable

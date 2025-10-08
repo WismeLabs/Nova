@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wisme.firstapp.R
 import com.wisme.firstapp.ui.home.HomeScreen
+import com.wisme.firstapp.ui.utils.ResponsiveFontSizes
+import com.wisme.firstapp.ui.utils.ResponsiveSpacing
 
 @Composable
 fun Scaffold(
@@ -103,14 +105,14 @@ fun TopAppBar(
                     text = "Welcome",
                     color = Color.White,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontSize = 16.sp
+                    fontSize = ResponsiveFontSizes.body()
                 )
                 Text(
                     text = "$username!",
                     color = lightGreen,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp
+                    fontSize = ResponsiveFontSizes.headingLarge()
                 )
             }
         }

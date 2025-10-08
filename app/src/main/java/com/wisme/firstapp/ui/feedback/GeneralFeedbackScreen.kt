@@ -28,6 +28,9 @@ import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.Surface
 import com.wisme.firstapp.data.local.AuthPreferences
+import com.wisme.firstapp.ui.utils.ResponsiveTextStyles
+import com.wisme.firstapp.ui.utils.ResponsiveFontSizes
+import com.wisme.firstapp.ui.utils.ResponsiveSpacing
 import com.wisme.firstapp.ui.profile.UserProfileViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -111,19 +114,19 @@ fun GeneralFeedbackScreen(
             Column {
                 Text(
                     text = "Hi $userName! 👋",
-                    fontSize = 14.sp,
+                    fontSize = ResponsiveFontSizes.bodySmall(),
                     fontWeight = FontWeight.Medium,
                     color = Color(0xFFC1FF72)
                 )
                 Text(
                     text = "Research Studies",
-                    fontSize = 24.sp,
+                    fontSize = ResponsiveFontSizes.headingLarge(),
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
                 Text(
                     text = "Help us improve learning",
-                    fontSize = 16.sp,
+                    fontSize = ResponsiveFontSizes.body(),
                     color = Color.Gray
                 )
             }
@@ -160,13 +163,13 @@ fun GeneralFeedbackScreen(
                 ) {
                     Text(
                         text = "🔬 Help shape the future of learning",
-                        fontSize = 17.sp,
+                        fontSize = ResponsiveFontSizes.body(),
                         fontWeight = FontWeight.SemiBold,
                         color = lightGreen
                     )
                     Text(
                         text = "Your insights help us understand what learners truly value and how we can improve.",
-                        fontSize = 15.sp,
+                        fontSize = ResponsiveFontSizes.body(),
                         color = Color(0xFFB0B0B0),
                         lineHeight = 22.sp
                     )
@@ -217,7 +220,7 @@ fun GeneralFeedbackScreen(
             ) {
                 Text(
                     text = "Skip",
-                    fontSize = 16.sp,
+                    fontSize = ResponsiveFontSizes.body(),
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -262,7 +265,7 @@ fun GeneralFeedbackScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Submit",
-                    fontSize = 16.sp,
+                    fontSize = ResponsiveFontSizes.body(),
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -283,7 +286,7 @@ fun GeneralFeedbackScreen(
                     text = error,
                     color = Color.Red,
                     modifier = Modifier.padding(16.dp),
-                    fontSize = 14.sp
+                    fontSize = ResponsiveFontSizes.bodySmall()
                 )
             }
         }
@@ -315,7 +318,7 @@ fun GeneralFeedbackScreen(
                         Text(
                             text = "Submitting feedback...",
                             color = Color.White,
-                            fontSize = 16.sp
+                            fontSize = ResponsiveFontSizes.body()
                         )
                     }
                 }
@@ -349,12 +352,12 @@ private fun FeedbackQuestionCard(
             ) {
                 Text(
                     text = icon,
-                    fontSize = 24.sp,
+                    fontSize = ResponsiveFontSizes.headingLarge(),
                     modifier = Modifier.padding(end = 16.dp)
                 )
                 Text(
                     text = question,
-                    fontSize = 18.sp,
+                    fontSize = ResponsiveFontSizes.bodyLarge(),
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White,
                     lineHeight = 26.sp,
@@ -401,12 +404,12 @@ private fun WTPQuestionCard(
             ) {
                 Text(
                     text = "💰",
-                    fontSize = 24.sp,
+                    fontSize = ResponsiveFontSizes.headingLarge(),
                     modifier = Modifier.padding(end = 16.dp)
                 )
                 Text(
                     text = "If Wisme offered a fully personalized journey for any topic you want, how much would you pay?",
-                    fontSize = 18.sp,
+                    fontSize = ResponsiveFontSizes.bodyLarge(),
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White,
                     lineHeight = 26.sp,
@@ -437,7 +440,7 @@ private fun WTPQuestionCard(
             
             Text(
                 text = "💡 This helps us understand the value you see in personalized learning experiences.",
-                fontSize = 12.sp,
+                fontSize = ResponsiveFontSizes.caption(),
                 color = Color.Gray,
                 lineHeight = 16.sp
             )
@@ -483,7 +486,7 @@ private fun GeneralFeedbackOptionItem(
             
             Text(
                 text = option,
-                fontSize = 16.sp,
+                fontSize = ResponsiveFontSizes.body(),
                 fontWeight = FontWeight.Medium,
                 color = if (isSelected) lightGreen else Color(0xFFCCCCCC)
             )
@@ -516,14 +519,14 @@ fun GeneralFeedbackScreenPreview() {
                 Text(
                     text = "General Feedback Screen",
                     color = Color.White,
-                    fontSize = 24.sp,
+                    fontSize = ResponsiveFontSizes.headingLarge(),
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "Research Survey",
                     color = Color.White,
-                    fontSize = 18.sp
+                    fontSize = ResponsiveFontSizes.bodyLarge()
                 )
             }
         }

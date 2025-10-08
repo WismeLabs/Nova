@@ -28,6 +28,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.wisme.firstapp.ui.profile.UserProfileViewModel
 import androidx.compose.runtime.collectAsState
 import com.wisme.firstapp.R
+import com.wisme.firstapp.ui.utils.ResponsiveTextStyles
+import com.wisme.firstapp.ui.utils.ResponsiveFontSizes
+import com.wisme.firstapp.ui.utils.ResponsiveSpacing
 import com.wisme.firstapp.ui.common.TopAppBar
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -175,7 +178,7 @@ private fun FeedbackCard(
                 // Title
                 Text(
                     text = title,
-                    fontSize = 22.sp,
+                    fontSize = ResponsiveFontSizes.headingLarge(),
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
@@ -183,7 +186,7 @@ private fun FeedbackCard(
                 // Subtitle
                 Text(
                     text = subtitle,
-                    fontSize = 15.sp,
+                    fontSize = ResponsiveFontSizes.body(),
                     color = Color(0xFFB0B0B0),
                     lineHeight = 22.sp
                 )
@@ -214,7 +217,7 @@ private fun FeedbackCard(
                     ) {
                         Text(
                             text = buttonLabel,
-                            fontSize = 16.sp,
+                            fontSize = ResponsiveFontSizes.body(),
                             fontWeight = FontWeight.SemiBold,
                             color = if (enabled) Color.Black else Color(0xFF888888)
                         )
@@ -222,7 +225,7 @@ private fun FeedbackCard(
                         if (enabled) {
                             Text(
                                 text = "Help us improve",
-                                fontSize = 13.sp,
+                                fontSize = ResponsiveFontSizes.bodySmall(),
                                 color = Color.Black.copy(alpha = 0.6f)
                             )
                         }
@@ -261,14 +264,14 @@ fun FeedbackScreenPreview() {
                 Text(
                     text = "Feedback Hub",
                     color = Color.White,
-                    fontSize = 24.sp,
+                    fontSize = ResponsiveFontSizes.headingLarge(),
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "Share your experience with us",
                     color = Color.White,
-                    fontSize = 16.sp
+                    fontSize = ResponsiveFontSizes.body()
                 )
             }
         }

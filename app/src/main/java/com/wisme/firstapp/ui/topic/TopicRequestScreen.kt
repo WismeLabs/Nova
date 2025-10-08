@@ -13,6 +13,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.wisme.firstapp.ui.utils.ResponsiveTextStyles
+import com.wisme.firstapp.ui.utils.ResponsiveSpacing
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wisme.firstapp.viewmodel.TopicViewModel
@@ -73,10 +75,10 @@ fun TopicRequestScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(20.dp),
+                .padding(ResponsiveSpacing.large()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(ResponsiveSpacing.large()))
             
             // Explanatory text
             Text(
@@ -85,7 +87,7 @@ fun TopicRequestScreen(
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = ResponsiveSpacing.medium())
             )
             
             Text(
@@ -94,7 +96,7 @@ fun TopicRequestScreen(
                 color = Color.White.copy(alpha = 0.8f),
                 textAlign = TextAlign.Center,
                 lineHeight = 24.sp,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = ResponsiveSpacing.small())
             )
             
             Text(
@@ -104,7 +106,7 @@ fun TopicRequestScreen(
                 textAlign = TextAlign.Center,
                 fontWeight = FontWeight.Medium,
                 lineHeight = 22.sp,
-                modifier = Modifier.padding(bottom = 32.dp)
+                modifier = Modifier.padding(bottom = ResponsiveSpacing.large())
             )
             
             // Topic input field
@@ -144,7 +146,7 @@ fun TopicRequestScreen(
                 isError = validationError != null,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = if (validationError != null) 16.dp else 24.dp),
+                    .padding(bottom = if (validationError != null) ResponsiveSpacing.medium() else ResponsiveSpacing.large()),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = Color.White,
                     unfocusedTextColor = Color.White,
@@ -187,14 +189,12 @@ fun TopicRequestScreen(
                 } else {
                     Text(
                         text = "Submit Request",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 16.sp
+                        style = ResponsiveTextStyles.bodyLarge().copy(fontWeight = FontWeight.SemiBold)
                     )
                 }
             }
             
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(ResponsiveSpacing.large()))
             
             // Success/Error message
             submitResult?.let { result ->
@@ -222,7 +222,7 @@ fun TopicRequestScreen(
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(16.dp)
+                        modifier = Modifier.padding(ResponsiveSpacing.medium())
                     )
                 }
                 
@@ -240,7 +240,7 @@ fun TopicRequestScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = ResponsiveSpacing.medium())
             )
         }
     }

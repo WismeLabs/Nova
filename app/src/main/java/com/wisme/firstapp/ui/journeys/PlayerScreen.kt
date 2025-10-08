@@ -28,6 +28,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.wisme.firstapp.ui.utils.ResponsiveTextStyles
+import com.wisme.firstapp.ui.utils.ResponsiveFontSizes
+import com.wisme.firstapp.ui.utils.ResponsiveSpacing
 import com.wisme.firstapp.viewmodel.PlayerViewModel
 import com.wisme.firstapp.R
 import com.wisme.firstapp.domain.EpisodeDataClass
@@ -381,7 +384,7 @@ fun PlayerScreenContent(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Now Playing", style = MaterialTheme.typography.bodySmall, fontSize = 15.sp) },
+                title = { Text("Now Playing", style = MaterialTheme.typography.bodySmall, fontSize = ResponsiveFontSizes.body()) },
                 navigationIcon = {
                     IconButton(onClick = onBackPress) {
                         Icon(painterResource(R.drawable.back_arrow), contentDescription = "Back")
@@ -450,7 +453,7 @@ fun PlayerScreenContent(
                     text = episode.title,
                     color = Color.White,
                     style = MaterialTheme.typography.titleMedium,
-                    fontSize = 28.sp,
+                    fontSize = ResponsiveFontSizes.displaySmall(),
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(4.dp))
@@ -458,7 +461,7 @@ fun PlayerScreenContent(
                     text = "Episode ${episode.episodeNumber} - ${progressPercentage.toInt()}% complete",
                     color = Color.Gray,
                     style = MaterialTheme.typography.bodySmall,
-                    fontSize = 15.sp
+                    fontSize = ResponsiveFontSizes.body()
                 )
             }
 
@@ -476,8 +479,8 @@ fun PlayerScreenContent(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = currentPosition.formatTime(), color = Color.Gray, fontSize = 12.sp)
-                    Text(text = totalDuration.formatTime(), color = Color.Gray, fontSize = 12.sp)
+                    Text(text = currentPosition.formatTime(), color = Color.Gray, fontSize = ResponsiveFontSizes.caption())
+                    Text(text = totalDuration.formatTime(), color = Color.Gray, fontSize = ResponsiveFontSizes.caption())
                 }
             }
 
@@ -537,7 +540,7 @@ fun PlayerScreenContent(
                 text = "Episodes",
                 color = Color.White,
                 style = MaterialTheme.typography.titleSmall,
-                fontSize = 18.sp,
+                fontSize = ResponsiveFontSizes.bodyLarge(),
                 fontWeight = FontWeight.Medium
             )
             
@@ -696,14 +699,14 @@ fun EpisodeCard(
                         color = if (isCurrentPlaying) accentColor else Color.White,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = if (isCurrentPlaying) FontWeight.Bold else FontWeight.Normal,
-                        fontSize = 14.sp
+                        fontSize = ResponsiveFontSizes.bodySmall()
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = episode.title,
                         color = if (isCurrentPlaying) Color.White else Color.Gray,
                         style = MaterialTheme.typography.bodySmall,
-                        fontSize = 12.sp,
+                        fontSize = ResponsiveFontSizes.caption(),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )

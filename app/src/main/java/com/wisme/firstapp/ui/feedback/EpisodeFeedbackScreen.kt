@@ -18,6 +18,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.wisme.firstapp.ui.utils.ResponsiveTextStyles
+import com.wisme.firstapp.ui.utils.ResponsiveFontSizes
+import com.wisme.firstapp.ui.utils.ResponsiveSpacing
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wisme.firstapp.theme.AppTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -92,7 +95,7 @@ fun EpisodeFeedbackScreen(
                 Text(
                     text = "Submitting feedback...",
                     color = Color.White,
-                    fontSize = 16.sp
+                    fontSize = ResponsiveFontSizes.body()
                 )
             }
         }
@@ -123,19 +126,19 @@ fun EpisodeFeedbackScreen(
             Column {
                 Text(
                     text = "Hi $userName! 👋",
-                    fontSize = 14.sp,
+                    fontSize = ResponsiveFontSizes.bodySmall(),
                     fontWeight = FontWeight.Medium,
                     color = Color(0xFFC1FF72)
                 )
                 Text(
                     text = "Episode Feedback",
-                    fontSize = 24.sp,
+                    fontSize = ResponsiveFontSizes.headingLarge(),
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
                 Text(
                     text = episodeTitle,
-                    fontSize = 16.sp,
+                    fontSize = ResponsiveFontSizes.body(),
                     color = Color.Gray
                 )
             }
@@ -179,7 +182,7 @@ fun EpisodeFeedbackScreen(
                 Text(
                     text = "Error: $error",
                     color = Color.Red,
-                    fontSize = 14.sp,
+                    fontSize = ResponsiveFontSizes.bodySmall(),
                     modifier = Modifier.padding(16.dp)
                 )
             }
@@ -214,7 +217,7 @@ fun EpisodeFeedbackScreen(
             ) {
                 Text(
                     text = "Skip",
-                    fontSize = 16.sp,
+                    fontSize = ResponsiveFontSizes.body(),
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -261,7 +264,7 @@ fun EpisodeFeedbackScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Submit",
-                    fontSize = 16.sp,
+                    fontSize = ResponsiveFontSizes.body(),
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -289,7 +292,7 @@ private fun FeedbackQuestionCard(
         ) {
             Text(
                 text = question,
-                fontSize = 19.sp,
+                fontSize = ResponsiveFontSizes.bodyLarge(),
                 fontWeight = FontWeight.SemiBold,
                 color = Color.White,
                 lineHeight = 26.sp
@@ -348,7 +351,7 @@ private fun FeedbackOptionItem(
             
             Text(
                 text = option,
-                fontSize = 16.sp,
+                fontSize = ResponsiveFontSizes.body(),
                 fontWeight = FontWeight.Medium,
                 color = if (isSelected) lightGreen else Color(0xFFCCCCCC)
             )
@@ -380,14 +383,14 @@ fun EpisodeFeedbackScreenPreview() {
                 Text(
                     text = "Episode Feedback Screen",
                     color = Color.White,
-                    fontSize = 24.sp,
+                    fontSize = ResponsiveFontSizes.headingLarge(),
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "Arrays & Hash Tables",
                     color = Color.White,
-                    fontSize = 18.sp
+                    fontSize = ResponsiveFontSizes.bodyLarge()
                 )
             }
         }

@@ -41,6 +41,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.wisme.firstapp.ui.utils.ResponsiveTextStyles
+import com.wisme.firstapp.ui.utils.ResponsiveSpacing
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.wisme.firstapp.R
 import com.wisme.firstapp.data.local.AuthPreferences
@@ -110,16 +112,14 @@ fun ExploreJourneysContent(
             Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .padding(horizontal = ResponsiveSpacing.large(), vertical = ResponsiveSpacing.medium())
         ) {
             Text(
                 text = "Choose Your Journey",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 24.sp,
+                style = ResponsiveTextStyles.headlineMedium().copy(fontWeight = FontWeight.SemiBold),
                 color = Color.White
             )
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(ResponsiveSpacing.extraLarge()))
 
             // Show loading or error state
             if (isLoading) {
@@ -127,7 +127,7 @@ fun ExploreJourneysContent(
                     text = "Loading journeys...",
                     color = Color.White,
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(vertical = 20.dp)
+                    modifier = Modifier.padding(vertical = ResponsiveSpacing.large())
                 )
             } else if (errorMessage != null) {
                 Column {
@@ -135,13 +135,13 @@ fun ExploreJourneysContent(
                         text = "Error: $errorMessage",
                         color = Color.Red,
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(vertical = 10.dp)
+                        modifier = Modifier.padding(vertical = ResponsiveSpacing.small())
                     )
                     Text(
                         text = "Showing sample journeys instead",
                         color = Color.Gray,
                         style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(bottom = 20.dp)
+                        modifier = Modifier.padding(bottom = ResponsiveSpacing.large())
                     )
                 }
             }
@@ -156,7 +156,7 @@ fun ExploreJourneysContent(
                         text = "No journeys available",
                         color = Color.Gray,
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(vertical = 20.dp)
+                        modifier = Modifier.padding(vertical = ResponsiveSpacing.large())
                     )
                     Text(
                         text = "Check back later for new learning journeys!",
@@ -167,8 +167,8 @@ fun ExploreJourneysContent(
                 }
             } else {
                 LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(20.dp),
-                    contentPadding = PaddingValues(bottom = 36.dp)
+                    verticalArrangement = Arrangement.spacedBy(ResponsiveSpacing.large()),
+                    contentPadding = PaddingValues(bottom = ResponsiveSpacing.extraLarge())
                 ) {
                     items(journeys) { journey ->
                         JourneyItem(journey = journey, onJourneyClick = onJourneyClick)
@@ -186,10 +186,8 @@ fun ExploreJourneysContent(
                     text = "On request journey generation\nfor any topic coming soon",
                     textAlign = TextAlign.Center,
                     color = Color.White,
-                    style= MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 15.sp,
-                    modifier = Modifier.padding(vertical = 10.dp, horizontal = 48.dp)
+                    style = ResponsiveTextStyles.bodyMedium().copy(fontWeight = FontWeight.Medium),
+                    modifier = Modifier.padding(vertical = ResponsiveSpacing.small(), horizontal = ResponsiveSpacing.extraLarge())
                 )
             }
         }
@@ -209,7 +207,7 @@ fun JourneyItem(
     ) {
         Row(
             modifier = Modifier
-                .padding(12.dp)
+                .padding(ResponsiveSpacing.medium())
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -235,31 +233,28 @@ fun JourneyItem(
                 contentScale = ContentScale.Crop
             )
 
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(ResponsiveSpacing.small()))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = journey.JourneyName,
                     color = Color.White,
-                    style= MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 16.sp,
-                    modifier=Modifier.padding(top=5.dp),
+                    style = ResponsiveTextStyles.bodyLarge().copy(fontWeight = FontWeight.Medium),
+                    modifier = Modifier.padding(top = ResponsiveSpacing.extraSmall()),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(ResponsiveSpacing.extraSmall()))
                 Text(
                     text = journey.JourneyDescription,
                     color = Color.White,
-                    style= MaterialTheme.typography.bodySmall,
-                    fontSize = 12.sp,
+                    style = ResponsiveTextStyles.bodySmall(),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
                 
                 // Display journey duration and episode count
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(ResponsiveSpacing.extraSmall()))
                 val durationText = if (journey.totalDurationMinutes > 0) {
                     "${journey.totalDurationMinutes} min"
                 } else {
@@ -273,12 +268,11 @@ fun JourneyItem(
                 Text(
                     text = "$durationText • $episodeText",
                     color = Color(0xFFC1FF72), // Light green accent
-                    style = MaterialTheme.typography.bodySmall,
-                    fontSize = 11.sp
+                    style = ResponsiveTextStyles.bodySmall()
                 )
             }
 
-            Spacer(modifier = Modifier.width(36.dp))
+            Spacer(modifier = Modifier.width(ResponsiveSpacing.extraLarge()))
 
             Icon(
                 painter = painterResource(R.drawable.arrow),
@@ -328,9 +322,8 @@ fun ExploreJourneysPreview() {
             Text(
                 text = "Hi Explorer! 👋",
                 color = Color.White,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(16.dp)
+                style = ResponsiveTextStyles.titleMedium().copy(fontWeight = FontWeight.SemiBold),
+                modifier = Modifier.padding(ResponsiveSpacing.medium())
             )
         }
     ) { paddingValues ->
@@ -338,19 +331,17 @@ fun ExploreJourneysPreview() {
             Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .padding(horizontal = ResponsiveSpacing.large(), vertical = ResponsiveSpacing.medium())
         ) {
             Text(
                 text = "Choose Your Journey",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 24.sp,
+                style = ResponsiveTextStyles.headlineMedium().copy(fontWeight = FontWeight.SemiBold),
                 color = Color.White
             )
             
             LazyColumn(
-                contentPadding = PaddingValues(vertical = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                contentPadding = PaddingValues(vertical = ResponsiveSpacing.large()),
+                verticalArrangement = Arrangement.spacedBy(ResponsiveSpacing.medium())
             ) {
                 items(sampleJourneys) { journey ->
                     JourneyItem(

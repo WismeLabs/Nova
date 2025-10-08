@@ -38,6 +38,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.wisme.firstapp.ui.utils.ResponsiveTextStyles
+import com.wisme.firstapp.ui.utils.ResponsiveSpacing
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -127,7 +129,7 @@ fun HomeScreen(
                 contentPadding = PaddingValues(bottom = 180.dp) // Space for resume section (80dp) + navbar (90dp) + padding
             ) {
                 item {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(ResponsiveSpacing.medium()))
                 }
             
             item {
@@ -139,7 +141,7 @@ fun HomeScreen(
             }
             
             item {
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(ResponsiveSpacing.large()))
             }
             
             item {
@@ -148,7 +150,7 @@ fun HomeScreen(
             }
             
             item {
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(ResponsiveSpacing.large()))
             }
             
             item {
@@ -157,7 +159,7 @@ fun HomeScreen(
             }
             
                 item {
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(ResponsiveSpacing.large()))
                 }
             }
         }
@@ -199,19 +201,17 @@ fun CategoryChipsSection(
         )
     }
     
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = ResponsiveSpacing.large())) {
         Text(
             text = "What users want to learn?",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Medium,
-            fontSize = 20.sp,
+            style = ResponsiveTextStyles.titleLarge().copy(fontWeight = FontWeight.Medium),
             color = Color.White,
-            modifier = Modifier.padding(bottom = 16.dp)
+            modifier = Modifier.padding(bottom = ResponsiveSpacing.medium())
         )
 
         LazyRow(
             contentPadding = PaddingValues(horizontal = 0.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(ResponsiveSpacing.medium())
         ) {
             itemsIndexed(topics) { index, topic ->
                 Surface(
@@ -221,24 +221,22 @@ fun CategoryChipsSection(
                 ) {
                     Text(
                         text = topic,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                        modifier = Modifier.padding(horizontal = ResponsiveSpacing.large(), vertical = ResponsiveSpacing.small()),
                         color = Color.White,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 14.sp
+                        style = ResponsiveTextStyles.bodyMedium().copy(fontWeight = FontWeight.Medium)
                     )
                 }
             }
         }
         
         // Add topic request button
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(ResponsiveSpacing.medium()))
         
         Button(
             onClick = onNavigateToTopicRequest,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = ResponsiveSpacing.large()),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFF6C5CE7),
                 contentColor = Color.White
@@ -247,10 +245,8 @@ fun CategoryChipsSection(
         ) {
             Text(
                 text = "What would you like to learn?",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                fontSize = 16.sp,
-                modifier = Modifier.padding(vertical = 4.dp)
+                style = ResponsiveTextStyles.bodyLarge().copy(fontWeight = FontWeight.Medium),
+                modifier = Modifier.padding(vertical = ResponsiveSpacing.extraSmall())
             )
         }
     }
@@ -292,14 +288,12 @@ fun UpcomingFeaturesSection() {
         ) {
             Text(
                 text = "Upcoming Features",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                fontSize = 20.sp,
+                style = ResponsiveTextStyles.titleLarge().copy(fontWeight = FontWeight.Medium),
                 color = Color.White
             )
         }
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(ResponsiveSpacing.medium()))
         
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -336,14 +330,12 @@ fun UpcomingFeaturesSection() {
                             Text(
                                 text = title,
                                 color = Color.White,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
+                                style = ResponsiveTextStyles.bodyLarge().copy(fontWeight = FontWeight.Bold)
                             )
                             Text(
                                 text = subtitle,
                                 color = lightGreen,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium
+                                style = ResponsiveTextStyles.bodyMedium().copy(fontWeight = FontWeight.Medium)
                             )
                         }
                     }
@@ -406,31 +398,29 @@ fun ResumeLearningSection(
                 ) {
                     Text(
                         text = "🎧",
-                        fontSize = 20.sp
+                        style = ResponsiveTextStyles.titleLarge()
                     )
                 }
             }
             
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(ResponsiveSpacing.medium()))
             
             // Episode info
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Continue Learning",
                     color = Color.White,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium
+                    style = ResponsiveTextStyles.bodySmall().copy(fontWeight = FontWeight.Medium)
                 )
                 Text(
                     text = displayJourneyName,
                     color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
+                    style = ResponsiveTextStyles.bodyLarge().copy(fontWeight = FontWeight.Bold)
                 )
                 Text(
                     text = displayEpisodeTitle,
                     color = Color.Gray,
-                    fontSize = 14.sp
+                    style = ResponsiveTextStyles.bodyMedium()
                 )
             }
             
@@ -451,8 +441,7 @@ fun ResumeLearningSection(
                     Text(
                         text = "▶",
                         color = Color.Black,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
+                        style = ResponsiveTextStyles.bodyLarge().copy(fontWeight = FontWeight.Bold)
                     )
                 }
             }

@@ -51,6 +51,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.wisme.firstapp.R
 import com.wisme.firstapp.data.local.NavigationState
 import com.wisme.firstapp.viewmodel.AuthViewModel
+import com.wisme.firstapp.ui.utils.*
 
 @Composable
 fun SignUpScreen(
@@ -202,7 +203,7 @@ fun SignUpScreenContent(
                     ) {
                         Text(
                             text = "⚠️",
-                            fontSize = 20.sp
+                            style = ResponsiveTextStyles.titleMedium()
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Column(modifier = Modifier.weight(1f)) {
@@ -262,7 +263,11 @@ fun SignUpScreenContent(
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text("Sign up with Google", color = Color.Black, fontSize = 16.sp, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Sign up with Google", 
+                        color = Color.Black, 
+                        style = ResponsiveTextStyles.bodyLarge().copy(fontWeight = FontWeight.Bold)
+                    )
                 }
             }
             //"OR" Divider
@@ -275,7 +280,7 @@ fun SignUpScreenContent(
                     "OR",
                     color = textGray,
                     modifier = Modifier.padding(horizontal = 5.dp),
-                    fontSize = 14.sp
+                    style = ResponsiveTextStyles.labelLarge()
                 )
                 HorizontalDivider(color = Color.Gray, modifier = Modifier.weight(1f))
             }
@@ -331,7 +336,7 @@ fun SignUpScreenContent(
                     Text(
                         text = error,
                         color = Color.Red,
-                        fontSize = 12.sp,
+                        style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                     )
                 }
@@ -412,7 +417,7 @@ fun SignUpScreenContent(
                     Text(
                         text = error,
                         color = Color.Red,
-                        fontSize = 12.sp,
+                        style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                     )
                 }
@@ -492,7 +497,7 @@ fun SignUpScreenContent(
                     Text(
                         text = error,
                         color = Color.Red,
-                        fontSize = 12.sp,
+                        style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                     )
                 }
@@ -514,7 +519,7 @@ fun SignUpScreenContent(
                     ) {
                         Text(
                             text = "❌",
-                            fontSize = 20.sp
+                            style = ResponsiveTextStyles.titleMedium()
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Column(modifier = Modifier.weight(1f)) {
@@ -592,9 +597,17 @@ fun SignUpScreenContent(
                 enabled = !isLoading
             ) {
                 if (isLoading) {
-                    Text("Creating account...", color = Color.Black, fontSize = 18.sp, style=MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Creating account...", 
+                        color = Color.Black, 
+                        style = ResponsiveTextStyles.labelLarge().copy(fontWeight = FontWeight.Bold)
+                    )
                 } else {
-                    Text("Sign up for free", color = Color.Black, fontSize = 18.sp, style=MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Sign up for free", 
+                        color = Color.Black, 
+                        style = ResponsiveTextStyles.labelLarge().copy(fontWeight = FontWeight.Bold)
+                    )
                 }
             }
 

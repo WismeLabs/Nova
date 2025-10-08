@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wisme.firstapp.R
 import com.wisme.firstapp.domain.model.OnboardingModel
+import com.wisme.firstapp.ui.utils.*
 
 val titleFont = FontFamily(
     Font(R.font.inter_18pt_bold,FontWeight.Bold)
@@ -82,7 +83,10 @@ fun OnboardingGraphUI(onboardingModel: OnboardingModel) {
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
-            .padding(horizontal = 24.dp, vertical = 40.dp),
+            .padding(
+                horizontal = ResponsiveSpacing.horizontal(), 
+                vertical = ResponsiveSpacing.vertical()
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
@@ -90,44 +94,54 @@ fun OnboardingGraphUI(onboardingModel: OnboardingModel) {
             Text(
                 text = annotatedTitleString,
                 modifier = Modifier.fillMaxWidth(),
-                fontSize = 48.sp,
+                style = ResponsiveTextStyles.headlineLarge().copy(
+                    fontFamily = titleFont,
+                    fontWeight = FontWeight.Bold
+                ),
                 textAlign = TextAlign.Center
             )
         }
 
-        Spacer(modifier = Modifier.height(30.dp))
+        Spacer(modifier = Modifier.height(ResponsiveSpacing.large()))
 
         Image(
             painter = painterResource(id = onboardingModel.image),
-            contentDescription = null,
+            contentDescription = "Onboarding illustration",
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal=if(onboardingModel.image!=R.drawable.img_intro_1)20.dp else 0.dp)
+                .padding(
+                    horizontal = if(onboardingModel.image!=R.drawable.img_intro_1) 
+                        ResponsiveSpacing.medium() 
+                    else 
+                        0.dp
+                )
                 .weight(1f),
             alignment = Alignment.Center
         )
 
         if(onboardingModel.image!=R.drawable.img_intro_1){
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(ResponsiveSpacing.medium()))
             Text(
                 text = annotatedTitleString,
                 modifier = Modifier.fillMaxWidth(),
-                fontSize = 32.sp,
+                style = ResponsiveTextStyles.headlineMedium().copy(
+                    fontFamily = titleFont,
+                    fontWeight = FontWeight.Bold
+                ),
                 textAlign = TextAlign.Center
             )
         }
-        Spacer(modifier = Modifier.height(30.dp))
+        Spacer(modifier = Modifier.height(ResponsiveSpacing.large()))
         Text(
             text = onboardingModel.description,
             modifier = Modifier.fillMaxWidth(),
-            fontSize = 20.sp,
             textAlign = TextAlign.Center,
             color = Color.White,
-            style = MaterialTheme.typography.bodyMedium.copy(
+            style = ResponsiveTextStyles.bodyLarge().copy(
                 fontFamily = descriptionFont
             )
         )
-        Spacer(modifier = Modifier.height(40.dp))
+        Spacer(modifier = Modifier.height(ResponsiveSpacing.extraLarge()))
     }
 }
 

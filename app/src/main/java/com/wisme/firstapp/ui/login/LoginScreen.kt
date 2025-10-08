@@ -51,6 +51,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.wisme.firstapp.R
 import com.wisme.firstapp.data.local.NavigationState
 import com.wisme.firstapp.viewmodel.AuthViewModel
+import com.wisme.firstapp.ui.utils.*
 
 @Composable
 fun LoginScreen(
@@ -204,7 +205,7 @@ fun LoginScreenContent(
                     ) {
                         Text(
                             text = "⚠️",
-                            fontSize = 20.sp
+                            style = ResponsiveTextStyles.titleMedium()
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Column(modifier = Modifier.weight(1f)) {
@@ -262,7 +263,11 @@ fun LoginScreenContent(
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text("Sign in with Google", color = Color.Black, fontSize = 16.sp, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Sign in with Google", 
+                        color = Color.Black, 
+                        style = ResponsiveTextStyles.bodyLarge().copy(fontWeight = FontWeight.Bold)
+                    )
                 }
             }
             //"OR" Divider
@@ -275,7 +280,7 @@ fun LoginScreenContent(
                     "OR",
                     color = textGray,
                     modifier = Modifier.padding(horizontal = 5.dp),
-                    fontSize = 14.sp
+                    style = ResponsiveTextStyles.labelLarge()
                 )
                 HorizontalDivider(color = Color.Gray, modifier = Modifier.weight(1f))
             }
@@ -336,7 +341,7 @@ fun LoginScreenContent(
                     Text(
                         text = error,
                         color = Color.Red,
-                        fontSize = 12.sp,
+                        style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                     )
                 }
@@ -416,7 +421,7 @@ fun LoginScreenContent(
                     Text(
                         text = error,
                         color = Color.Red,
-                        fontSize = 12.sp,
+                        style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                     )
                 }
@@ -432,8 +437,7 @@ fun LoginScreenContent(
                 Text(
                     text = "Forgot Password?",
                     color = lightGreen,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
+                    style = ResponsiveTextStyles.labelLarge().copy(fontWeight = FontWeight.Medium),
                     modifier = Modifier.clickable { 
                         // Show password reset dialog
                         showPasswordResetDialog = true
@@ -457,7 +461,7 @@ fun LoginScreenContent(
                     ) {
                         Text(
                             text = "❌",
-                            fontSize = 20.sp
+                            style = ResponsiveTextStyles.titleMedium()
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Column(modifier = Modifier.weight(1f)) {
@@ -517,10 +521,18 @@ fun LoginScreenContent(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        Text("Signing in...", color = Color.Black, fontSize = 18.sp, style=MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                        Text(
+                            "Signing in...", 
+                            color = Color.Black, 
+                            style = ResponsiveTextStyles.labelLarge().copy(fontWeight = FontWeight.Bold)
+                        )
                     }
                 } else {
-                    Text("Sign in", color = Color.Black, fontSize = 18.sp, style=MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Sign in", 
+                        color = Color.Black, 
+                        style = ResponsiveTextStyles.labelLarge().copy(fontWeight = FontWeight.Bold)
+                    )
                 }
             }
 
@@ -603,15 +615,14 @@ fun PasswordResetDialog(
                 Text(
                     text = "Reset Password",
                     color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
+                    style = ResponsiveTextStyles.titleLarge().copy(fontWeight = FontWeight.Bold),
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
                 
                 Text(
                     text = "Enter your email address and we'll send you a link to reset your password.",
                     color = textGray,
-                    fontSize = 14.sp,
+                    style = ResponsiveTextStyles.bodyMedium(),
                     modifier = Modifier.padding(bottom = 20.dp),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
@@ -670,7 +681,7 @@ fun PasswordResetDialog(
                         Text(
                             text = error,
                             color = Color.Red,
-                            fontSize = 12.sp,
+                            fontSize = ResponsiveFontSizes.caption(),
                             modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                         )
                     }
@@ -681,7 +692,7 @@ fun PasswordResetDialog(
                     Text(
                         text = error,
                         color = Color.Red,
-                        fontSize = 14.sp,
+                        fontSize = ResponsiveFontSizes.bodySmall(),
                         modifier = Modifier.padding(top = 12.dp),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
@@ -771,14 +782,14 @@ fun PasswordResetSuccessDialog(
                 // Success Icon (using emoji for now)
                 Text(
                     text = "✅",
-                    fontSize = 48.sp,
+                    fontSize = ResponsiveFontSizes.displayLarge(),
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
                 
                 Text(
                     text = "Email Sent!",
                     color = Color.White,
-                    fontSize = 20.sp,
+                    fontSize = ResponsiveFontSizes.heading(),
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
@@ -786,7 +797,7 @@ fun PasswordResetSuccessDialog(
                 Text(
                     text = "We've sent you a password reset link. Check your email inbox and follow the instructions to reset your password.",
                     color = Color.Gray,
-                    fontSize = 14.sp,
+                    fontSize = ResponsiveFontSizes.bodySmall(),
                     modifier = Modifier.padding(bottom = 24.dp),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                     lineHeight = 20.sp

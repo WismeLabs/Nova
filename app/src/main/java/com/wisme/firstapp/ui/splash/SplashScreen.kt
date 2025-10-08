@@ -19,6 +19,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.wisme.firstapp.R
 import com.wisme.firstapp.data.local.NavigationState
 import com.wisme.firstapp.viewmodel.AuthViewModel
+import com.wisme.firstapp.ui.utils.*
 import kotlinx.coroutines.delay
 
 /**
@@ -78,27 +79,25 @@ private fun SplashContent() {
                 modifier = Modifier.size(120.dp)
             )
             
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(ResponsiveSpacing.large()))
             
             // App name
             Text(
                 text = "Wisme",
                 color = MaterialTheme.colorScheme.primary,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold
+                style = ResponsiveTextStyles.headlineLarge().copy(fontWeight = FontWeight.Bold)
             )
             
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(ResponsiveSpacing.medium()))
             
             // Tagline
             Text(
                 text = "Learn. Grow. Explore.",
                 color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium
+                style = ResponsiveTextStyles.bodyLarge().copy(fontWeight = FontWeight.Medium)
             )
             
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(ResponsiveSpacing.extraLarge()))
             
             // Loading indicator (optional)
             LoadingDots()
@@ -119,13 +118,13 @@ private fun LoadingDots() {
     }
     
     Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(ResponsiveSpacing.small())
     ) {
         dots.forEachIndexed { index, dot ->
             Text(
                 text = dot,
                 color = if (index == currentDot) MaterialTheme.colorScheme.primary else Color.Gray,
-                fontSize = 20.sp
+                style = ResponsiveTextStyles.titleMedium()
             )
         }
     }

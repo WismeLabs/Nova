@@ -69,6 +69,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.wisme.firstapp.ui.utils.ResponsiveTextStyles
+import com.wisme.firstapp.ui.utils.ResponsiveFontSizes
+import com.wisme.firstapp.ui.utils.ResponsiveSpacing
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.wisme.firstapp.R
@@ -219,7 +222,7 @@ fun UserProfileScreen(
                     text = "Profile",
                     color = Color.White,
                     style = MaterialTheme.typography.titleMedium,
-                    fontSize = 20.sp,
+                    fontSize = ResponsiveFontSizes.heading(),
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center
@@ -296,7 +299,7 @@ fun UserProfileScreen(
                         text = if (isEditing) "Save" else "Edit",
                         color = Color(0xFFC1FF72),
                         style = MaterialTheme.typography.bodyMedium,
-                        fontSize = 15.sp,
+                        fontSize = ResponsiveFontSizes.body(),
                         fontWeight = FontWeight.Medium,
                     )
                 }
@@ -328,7 +331,7 @@ fun UserProfileScreen(
                     text = displayName.ifBlank { name },
                     color = Color.White,
                     style = MaterialTheme.typography.titleMedium,
-                    fontSize = 20.sp,
+                    fontSize = ResponsiveFontSizes.heading(),
                     fontWeight = FontWeight.SemiBold,
                 )
             }
@@ -346,7 +349,7 @@ fun UserProfileScreen(
                     text = "Profile Details",
                     color = Color.White,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontSize = 20.sp,
+                    fontSize = ResponsiveFontSizes.heading(),
                     fontWeight = FontWeight.Medium,
                 )
                 
@@ -415,7 +418,7 @@ fun UserProfileScreen(
                     Text(
                         text = "Sign Out",
                         style = MaterialTheme.typography.bodyMedium,
-                        fontSize = 18.sp,
+                        fontSize = ResponsiveFontSizes.bodyLarge(),
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -491,7 +494,7 @@ fun ProfileDetailRow(label: String, value: String) {
             text = label,
             color = Color.White,
             style=MaterialTheme.typography.bodyMedium,
-            fontSize = 16.sp,
+            fontSize = ResponsiveFontSizes.body(),
             fontWeight = FontWeight.Medium,
             modifier = Modifier.weight(1f)
         )
@@ -499,7 +502,7 @@ fun ProfileDetailRow(label: String, value: String) {
             text = value,
             color = Color.White,
             style=MaterialTheme.typography.bodyMedium,
-            fontSize = 16.sp,
+            fontSize = ResponsiveFontSizes.body(),
             fontWeight = FontWeight.Medium,
         )
     }
@@ -539,7 +542,7 @@ fun AvatarSelectionSection(
             text = "Choose Avatar",
             color = Color.White,
             style = MaterialTheme.typography.bodyMedium,
-            fontSize = 16.sp,
+            fontSize = ResponsiveFontSizes.body(),
             fontWeight = FontWeight.Medium
         )
         
@@ -628,7 +631,7 @@ fun EditableProfileFields(
                     value = name,
                     onValueChange = onNameChange,
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Your name", color = textGray, style = MaterialTheme.typography.titleMedium, fontSize = 16.sp) },
+                    placeholder = { Text("Your name", color = textGray, style = MaterialTheme.typography.titleMedium, fontSize = ResponsiveFontSizes.body()) },
                     leadingIcon = { Icon(painterResource(id = R.drawable.person), contentDescription = null, tint = Color.Unspecified) },
                     shape = RoundedCornerShape(48.dp),
                     colors = TextFieldDefaults.colors(
@@ -645,7 +648,7 @@ fun EditableProfileFields(
                 Text(
                     text = error,
                     color = Color.Red,
-                    fontSize = 12.sp,
+                    fontSize = ResponsiveFontSizes.caption(),
                     modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                 )
             }
@@ -664,7 +667,7 @@ fun EditableProfileFields(
                     value = displayName,
                     onValueChange = onDisplayNameChange,
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Display name", color = textGray, style = MaterialTheme.typography.titleMedium, fontSize = 16.sp) },
+                    placeholder = { Text("Display name", color = textGray, style = MaterialTheme.typography.titleMedium, fontSize = ResponsiveFontSizes.body()) },
                     leadingIcon = { Icon(painterResource(id = R.drawable.person), contentDescription = null, tint = Color.Unspecified) },
                     shape = RoundedCornerShape(48.dp),
                     colors = TextFieldDefaults.colors(
@@ -681,7 +684,7 @@ fun EditableProfileFields(
                 Text(
                     text = error,
                     color = Color.Red,
-                    fontSize = 12.sp,
+                    fontSize = ResponsiveFontSizes.caption(),
                     modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                 )
             }
@@ -720,7 +723,7 @@ fun EditableProfileFields(
                         text = dob.ifEmpty { "Date of birth" },
                         color = if (dob.isEmpty()) textGray else Color.White,
                         style = MaterialTheme.typography.titleMedium,
-                        fontSize = 16.sp,
+                        fontSize = ResponsiveFontSizes.body(),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -738,7 +741,7 @@ fun EditableProfileFields(
                 Text(
                     text = error,
                     color = Color.Red,
-                    fontSize = 12.sp,
+                    fontSize = ResponsiveFontSizes.caption(),
                     modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                 )
             }
@@ -765,7 +768,7 @@ fun EditableProfileFields(
                                     if (char.isLowerCase()) char.titlecase() else char.toString() 
                                 }.replace("_", " ")
                             },
-                            textStyle = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp),
+                            textStyle = MaterialTheme.typography.titleMedium.copy(fontSize = ResponsiveFontSizes.body()),
                             onValueChange = {},
                             readOnly = true,
                             modifier = Modifier.fillMaxWidth(),
@@ -812,7 +815,7 @@ fun EditableProfileFields(
                         )
                         TextField(
                             value = selectedProfession.ifEmpty { "Profession" },
-                            textStyle = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp),
+                            textStyle = MaterialTheme.typography.titleMedium.copy(fontSize = ResponsiveFontSizes.body()),
                             onValueChange = {},
                             readOnly = true,
                             modifier = Modifier.fillMaxWidth(),
