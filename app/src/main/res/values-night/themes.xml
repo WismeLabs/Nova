@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-    <style name="Theme.Nova" parent="android:Theme.Material.Light.NoActionBar">
+    <style name="Theme.Nova" parent="android:Theme.Material.NoActionBar">
         <!-- Enable fullscreen and hide system UI -->
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowContentOverlay">@null</item>
@@ -13,7 +13,7 @@
         <item name="android:enforceNavigationBarContrast" tools:targetApi="q">false</item>
         <item name="android:enforceStatusBarContrast" tools:targetApi="q">false</item>
         
-        <!-- Background color -->
+        <!-- Background color for dark theme -->
         <item name="android:windowBackground">@android:color/black</item>
     </style>
 </resources>
