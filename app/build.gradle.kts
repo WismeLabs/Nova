@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.hilt)
-    // alias(libs.plugins.google.services) // Temporarily disabled for AAB build
+    alias(libs.plugins.google.services)
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.20"
 }
 
