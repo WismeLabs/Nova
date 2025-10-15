@@ -3,8 +3,11 @@ package com.wisme.firstapp.data.repository
 import com.wisme.firstapp.data.api.AuraApiService
 import com.wisme.firstapp.data.api.EpisodeApiModel
 import com.wisme.firstapp.data.api.JourneyApiModel
+import com.wisme.firstapp.data.api.EpisodeProgressRequest
 import com.wisme.firstapp.domain.EpisodeDataClass
 import com.wisme.firstapp.domain.JourneysDataClass
+import com.wisme.firstapp.domain.EpisodeProgress
+import com.wisme.firstapp.data.local.AuthPreferences
 import com.wisme.firstapp.util.Logger
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -12,7 +15,8 @@ import javax.inject.Singleton
 @Singleton
 class JourneyRepository @Inject constructor(
     private val apiService: AuraApiService,
-    private val connectivityRepository: ConnectivityRepository
+    private val connectivityRepository: ConnectivityRepository,
+    private val authPrefs: AuthPreferences
 ) {
     
     /**
@@ -186,8 +190,252 @@ class JourneyRepository @Inject constructor(
             JourneyName = apiJourney.title,
             JourneyDescription = apiJourney.description,
             JourneyImg = apiJourney.journey_id, // Using journey_id as image identifier
+            journeyId = apiJourney.journey_id, // Database ID for API calls
             totalDurationMinutes = apiJourney.total_duration_minutes,
             episodes = episodes
+        )
+    }
+    
+    /**
+     * Start an episode and register user progress
+     */
+    suspend fun startEpisode(
+        token: String, 
+        journeyId: String, 
+        episodeId: String,
+        useTestEndpoint: Boolean = false
+    ): Result<Pair<String, EpisodeProgress>> {
+        Logger.logJourney("Start Episode", journeyId)
+        Logger.logRepository(
+            repository = "JourneyRepository",
+            operation = "startEpisode",
+            additionalData = mapOf(
+                "journeyId" to journeyId,
+                "episodeId" to episodeId,
+                "useTestEndpoint" to useTestEndpoint
+            )
+        )
+        
+        return try {
+            val response = if (useTestEndpoint) {
+                apiService.startEpisodeTest(journeyId, episodeId)
+            } else {
+                if (token.isEmpty()) {
+                    return Result.failure(Exception("Authentication token required"))
+                }
+                apiService.startEpisode("Bearer $token", journeyId, episodeId)
+            }
+            
+            if (response.isSuccessful && response.body()?.success == true) {
+                val body = response.body()!!
+                val rawAudioUrl = body.audio_url ?: ""
+                
+                // Convert relative path to full URL
+                val audioUrl = if (rawAudioUrl.isNotEmpty() && !rawAudioUrl.startsWith("http")) {
+                    "https://aura-backend-ok92.onrender.com/$rawAudioUrl"
+                } else {
+                    rawAudioUrl
+                }
+                
+                println("JourneyRepository: Raw audio URL from API: '$rawAudioUrl'")
+                println("JourneyRepository: Full audio URL: '$audioUrl'")
+                
+                // Create progress object
+                val progress = EpisodeProgress(
+                    progressPercentage = 0f,
+                    playPositionSeconds = 0L,
+                    status = EpisodeProgress.STATUS_IN_PROGRESS,
+                    lastUpdated = System.currentTimeMillis()
+                )
+                
+                // Store progress locally
+                authPrefs.setEpisodeProgress(journeyId, episodeId, progress)
+                
+                Logger.logJourney(
+                    operation = "Start Episode",
+                    journeyName = journeyId,
+                    success = true
+                )
+                
+                Result.success(Pair(audioUrl, progress))
+            } else {
+                val errorMessage = "Failed to start episode: ${response.code()} ${response.message()}"
+                Logger.logJourney(
+                    operation = "Start Episode",
+                    journeyName = journeyId,
+                    success = false,
+                    errorMessage = errorMessage
+                )
+                Result.failure(Exception(errorMessage))
+            }
+        } catch (e: Exception) {
+            Logger.logJourney(
+                operation = "Start Episode",
+                journeyName = journeyId,
+                success = false,
+                errorMessage = "Exception: ${e.message}"
+            )
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Start episode and get streaming URL from backend
+     */
+    suspend fun getEpisodeStreamingUrl(
+        token: String, 
+        journeyId: String, 
+        episodeId: String,
+        useTestEndpoint: Boolean = false
+    ): Result<String> {
+        return try {
+            val response = if (useTestEndpoint) {
+                apiService.startEpisodeTest(journeyId, episodeId)
+            } else {
+                if (token.isEmpty()) {
+                    return Result.failure(Exception("Authentication token required"))
+                }
+                apiService.startEpisode("Bearer $token", journeyId, episodeId)
+            }
+            
+            if (response.isSuccessful && response.body()?.success == true) {
+                val audioUrl = response.body()!!.audio_url
+                println("JourneyRepository: Got streaming URL: $audioUrl")
+                Result.success(audioUrl)
+            } else {
+                val errorMessage = "Failed to get streaming URL: ${response.code()} ${response.message()}"
+                println("JourneyRepository: $errorMessage")
+                Result.failure(Exception(errorMessage))
+            }
+        } catch (e: Exception) {
+            println("JourneyRepository: Exception getting streaming URL: ${e.message}")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Update episode progress both locally and on backend
+     */
+    suspend fun updateEpisodeProgress(
+        token: String,
+        journeyId: String,
+        episodeId: String,
+        progressPercentage: Float,
+        playPositionSeconds: Long,
+        useTestEndpoint: Boolean = false
+    ): Result<EpisodeProgress> {
+        Logger.logJourney(
+            operation = "Update Progress",
+            journeyName = journeyId
+        )
+        Logger.logRepository(
+            repository = "JourneyRepository",
+            operation = "updateEpisodeProgress",
+            additionalData = mapOf(
+                "journeyId" to journeyId,
+                "episodeId" to episodeId,
+                "progressPercentage" to progressPercentage,
+                "playPositionSeconds" to playPositionSeconds
+            )
+        )
+        
+        // Determine episode status
+        val status = when {
+            progressPercentage >= EpisodeProgress.COMPLETION_THRESHOLD -> EpisodeProgress.STATUS_COMPLETED
+            progressPercentage > 0f -> EpisodeProgress.STATUS_IN_PROGRESS
+            else -> EpisodeProgress.STATUS_NOT_STARTED
+        }
+        
+        val progress = EpisodeProgress(
+            progressPercentage = progressPercentage,
+            playPositionSeconds = playPositionSeconds,
+            status = status,
+            lastUpdated = System.currentTimeMillis()
+        )
+        
+        return try {
+            // Update local storage first (offline-first approach)
+            authPrefs.setEpisodeProgress(journeyId, episodeId, progress)
+            
+            // Then sync with backend
+            val requestBody = EpisodeProgressRequest(
+                progress_percentage = progressPercentage.toDouble(),
+                play_position_seconds = playPositionSeconds.toInt()
+            )
+            
+            val response = if (useTestEndpoint) {
+                apiService.updateEpisodeProgressTest(journeyId, episodeId, requestBody)
+            } else {
+                if (token.isEmpty()) {
+                    // Return success since we stored locally
+                    return Result.success(progress)
+                }
+                apiService.updateEpisodeProgress("Bearer $token", journeyId, episodeId, requestBody)
+            }
+            
+            if (response.isSuccessful) {
+                Logger.logJourney(
+                    operation = "Update Progress",
+                    journeyName = journeyId,
+                    success = true
+                )
+                Result.success(progress)
+            } else {
+                Logger.logJourney(
+                    operation = "Update Progress",
+                    journeyName = journeyId,
+                    success = false,
+                    errorMessage = "Backend sync failed: ${response.code()}"
+                )
+                // Still return success since local storage succeeded
+                Result.success(progress)
+            }
+        } catch (e: Exception) {
+            Logger.logJourney(
+                operation = "Update Progress",
+                journeyName = journeyId,
+                success = false,
+                errorMessage = "Exception: ${e.message}"
+            )
+            // Still return success since local storage succeeded
+            Result.success(progress)
+        }
+    }
+    
+    /**
+     * Get continue listening data (latest played episode)
+     */
+    suspend fun getContinueLearning(): Result<Pair<String, String>?> {
+        return try {
+            val journeyId = authPrefs.currentPlayingJourneyId
+            val episodeId = authPrefs.currentPlayingEpisodeId
+            
+            if (!journeyId.isNullOrEmpty() && !episodeId.isNullOrEmpty()) {
+                Result.success(Pair(journeyId, episodeId))
+            } else {
+                Result.success(null)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Map API episode model to domain data class with progress information
+     */
+    private fun mapApiEpisodeToDataClass(apiEpisode: EpisodeApiModel, journeyId: String? = null): EpisodeDataClass {
+        // Check local progress if journeyId is provided
+        val progress = journeyId?.let { 
+            authPrefs.getEpisodeProgress(it, apiEpisode.episode_id ?: "episode_${apiEpisode.order_index}")
+        }
+        
+        return EpisodeDataClass(
+            episodeNumber = apiEpisode.order_index,
+            title = apiEpisode.title,
+            description = apiEpisode.description,
+            durationMinutes = apiEpisode.duration_minutes,
+            audioUrl = "", // Don't use relative path - get signed URL from start episode endpoint
+            isCompleted = progress?.isCompleted ?: false
         )
     }
     
@@ -195,13 +443,6 @@ class JourneyRepository @Inject constructor(
      * Map API episode model to domain data class
      */
     private fun mapApiEpisodeToDataClass(apiEpisode: EpisodeApiModel): EpisodeDataClass {
-        return EpisodeDataClass(
-            episodeNumber = apiEpisode.order_index,
-            title = apiEpisode.title,
-            description = apiEpisode.description,
-            durationMinutes = apiEpisode.duration_minutes,
-            audioUrl = "", // Will be populated when episode is started
-            isCompleted = false // TODO: Fetch from user progress tracking
-        )
+        return mapApiEpisodeToDataClass(apiEpisode, null)
     }
 }

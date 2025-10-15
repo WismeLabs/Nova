@@ -7,6 +7,7 @@ import com.wisme.firstapp.data.repository.ConnectivityRepository
 import com.wisme.firstapp.data.local.AuthPreferences
 import com.wisme.firstapp.domain.JourneysDataClass
 import com.wisme.firstapp.domain.EpisodeDataClass
+import com.wisme.firstapp.domain.EpisodeProgress
 import com.wisme.firstapp.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,11 +32,21 @@ class JourneyViewModel @Inject constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
-    private val _selectedJourney = MutableStateFlow<JourneysDataClass?>(null)
-    val selectedJourney: StateFlow<JourneysDataClass?> = _selectedJourney.asStateFlow()
+    // Removed selectedJourney - using simple journeys list from /v1/journeys/ endpoint
+
+    // Progress tracking state
+    private val _continueLearning = MutableStateFlow<Pair<String, String>?>(null)
+    val continueLearning: StateFlow<Pair<String, String>?> = _continueLearning.asStateFlow()
+
+    private val _hasStartedAnyEpisode = MutableStateFlow(false)
+    val hasStartedAnyEpisode: StateFlow<Boolean> = _hasStartedAnyEpisode.asStateFlow()
+
+    private val _episodeProgress = MutableStateFlow<Map<String, EpisodeProgress>>(emptyMap())
+    val episodeProgress: StateFlow<Map<String, EpisodeProgress>> = _episodeProgress.asStateFlow()
 
     init {
         loadJourneys()
+        loadProgressState()
     }
 
     /**
@@ -91,41 +102,13 @@ class JourneyViewModel @Inject constructor(
                         success = false,
                         errorMessage = errorMessage
                     )
-                    // Load sample data as fallback
-                    Logger.d("Loading sample journeys as fallback", "JOURNEY_VM")
-                    loadSampleJourneys()
                 }
 
             _isLoading.value = false
         }
     }
 
-    /**
-     * Load detailed journey with episodes
-     */
-    fun loadJourneyDetails(journeyId: String) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            _errorMessage.value = null
-
-            val token = authPrefs.firebaseToken
-            if (token.isNullOrEmpty()) {
-                _errorMessage.value = "Authentication token not found"
-                _isLoading.value = false
-                return@launch
-            }
-
-            journeyRepository.getJourneyWithEpisodes(token, journeyId)
-                .onSuccess { journey ->
-                    _selectedJourney.value = journey
-                }
-                .onFailure { exception ->
-                    _errorMessage.value = exception.message ?: "Failed to load journey details"
-                }
-
-            _isLoading.value = false
-        }
-    }
+    // Removed loadJourneyDetails - using simple approach with basic journeys + start episode endpoint
 
     /**
      * Retry loading journeys
@@ -142,55 +125,214 @@ class JourneyViewModel @Inject constructor(
     }
 
     /**
-     * Load sample journey data as fallback based on the markdown content
+     * Load progress state from preferences
      */
-    private fun loadSampleJourneys() {
-        val sampleJourneys = listOf(
-            JourneysDataClass(
-                JourneyName = "DSA / Cracking Coding Interviews",
-                JourneyDescription = "Help students crack coding interviews, from basics to advanced topics. Master arrays, recursion, dynamic programming and interview strategies.",
-                JourneyImg = "journey1", // This will be replaced with actual image URLs from backend
-                totalDurationMinutes = 0, // Will be calculated dynamically from audio files
-                episodes = listOf(
-                    EpisodeDataClass(1, "Why companies ask DSA questions", "Understanding the reasoning behind algorithmic interviews", 0), // Duration from audio file
-                    EpisodeDataClass(2, "Arrays & Strings refresher – common pitfalls", "Master the most common data structures and avoid typical mistakes", 0), // Duration from audio file
-                    EpisodeDataClass(3, "Recursion & Backtracking basics", "Build intuition for recursive problem solving", 0), // Duration from audio file
-                    EpisodeDataClass(4, "Dynamic Programming (Intro + patterns)", "Learn the most important optimization technique", 0), // Duration from audio file
-                    EpisodeDataClass(5, "Tricks to approach any coding problem", "Develop systematic problem-solving strategies", 0), // Duration from audio file
-                    EpisodeDataClass(6, "Mock interview mindset & time management", "Ace the interview with the right mental approach", 0) // Duration from audio file
+    private fun loadProgressState() {
+        viewModelScope.launch {
+            try {
+                // Load continue learning data
+                journeyRepository.getContinueLearning()
+                    .onSuccess { continueLearningData ->
+                        _continueLearning.value = continueLearningData
+                    }
+                    .onFailure { exception ->
+                        Logger.logViewModel(
+                            viewModel = "JourneyViewModel",
+                            operation = "loadProgressState",
+                            success = false,
+                            errorMessage = "Failed to load continue learning: ${exception.message}"
+                        )
+                    }
+
+                // Check if user has started any episode
+                _hasStartedAnyEpisode.value = authPrefs.hasStartedAnyEpisode
+
+                // Load all episode progress
+                val allProgress = authPrefs.getAllEpisodeProgress()
+                _episodeProgress.value = allProgress
+
+                Logger.logViewModel(
+                    viewModel = "JourneyViewModel",
+                    operation = "loadProgressState",
+                    success = true
                 )
-            ),
-            JourneysDataClass(
-                JourneyName = "Personal Finance",
-                JourneyDescription = "Teach foundational personal finance and modern investment trends. From budgeting basics to crypto and tax planning.",
-                JourneyImg = "journey2",
-                totalDurationMinutes = 0, // Will be calculated dynamically from audio files
-                episodes = listOf(
-                    EpisodeDataClass(1, "Budgeting & Saving basics", "Foundation of financial health", 0), // Duration from audio file
-                    EpisodeDataClass(2, "Emergency funds & debt management", "Building financial security", 0), // Duration from audio file
-                    EpisodeDataClass(3, "Understanding credit scores & loans", "Navigate the credit system", 0), // Duration from audio file
-                    EpisodeDataClass(4, "Investing 101 – stocks, mutual funds, ETFs", "Start your investment journey", 0), // Duration from audio file
-                    EpisodeDataClass(5, "Trends & alternatives – crypto, fractional investing, SIP automation", "Modern investment strategies", 0), // Duration from audio file
-                    EpisodeDataClass(6, "Tax planning basics & common mistakes", "Optimize your tax strategy", 0), // Duration from audio file
-                    EpisodeDataClass(7, "Actionable plan – first 3 months of financial health", "Your roadmap to financial success", 0) // Duration from audio file
+            } catch (e: Exception) {
+                Logger.logViewModel(
+                    viewModel = "JourneyViewModel",
+                    operation = "loadProgressState",
+                    success = false,
+                    errorMessage = "Exception: ${e.message}"
                 )
-            ),
-            JourneysDataClass(
-                JourneyName = "How to win Hackathons",
-                JourneyDescription = "Equip students with proven strategies to consistently perform and win hackathons. From team building to pitching.",
-                JourneyImg = "journey3",
-                totalDurationMinutes = 0, // Will be calculated dynamically from audio files
-                episodes = listOf(
-                    EpisodeDataClass(1, "The Winning Mindset", "Develop the psychology of hackathon winners", 0), // Duration from audio file
-                    EpisodeDataClass(2, "Choosing the Right Problem", "Select problems that judge well", 0), // Duration from audio file
-                    EpisodeDataClass(3, "Team Building & Role Clarity", "Assemble and organize your dream team", 0), // Duration from audio file
-                    EpisodeDataClass(4, "Execution Strategy – MVP, Tools & Time Management", "Build efficiently under pressure", 0), // Duration from audio file
-                    EpisodeDataClass(5, "Pitching & Presentation to Judges", "Sell your solution effectively", 0), // Duration from audio file
-                    EpisodeDataClass(6, "Common Mistakes & How to Avoid Them", "Learn from others' failures", 0), // Duration from audio file
-                    EpisodeDataClass(7, "Action Plan – Preparing for Your Next Hackathon", "Your comprehensive preparation guide", 0) // Duration from audio file
-                )
-            )
-        )
-        _journeys.value = sampleJourneys
+            }
+        }
     }
+
+    /**
+     * Start an episode and register progress tracking
+     */
+    fun startEpisode(journeyId: String, episodeId: String) {
+        Logger.logViewModel(
+            viewModel = "JourneyViewModel",
+            operation = "startEpisode - Starting episode: $journeyId/$episodeId"
+        )
+        
+        viewModelScope.launch {
+            try {
+                val token = authPrefs.firebaseToken
+                if (token.isNullOrEmpty()) {
+                    Logger.logViewModel(
+                        viewModel = "JourneyViewModel",
+                        operation = "startEpisode",
+                        success = false,
+                        errorMessage = "Authentication token not found"
+                    )
+                    return@launch
+                }
+                
+                journeyRepository.startEpisode(token, journeyId, episodeId)
+                    .onSuccess {
+                        // Update local state
+                        _hasStartedAnyEpisode.value = true
+                        _continueLearning.value = Pair(journeyId, episodeId)
+                        
+                        // Refresh progress state
+                        loadProgressState()
+                        
+                        Logger.logViewModel(
+                            viewModel = "JourneyViewModel",
+                            operation = "startEpisode",
+                            success = true
+                        )
+                    }
+                    .onFailure { exception ->
+                        Logger.logViewModel(
+                            viewModel = "JourneyViewModel",
+                            operation = "startEpisode",
+                            success = false,
+                            errorMessage = "Failed to start episode: ${exception.message}"
+                        )
+                    }
+            } catch (e: Exception) {
+                Logger.logViewModel(
+                    viewModel = "JourneyViewModel",
+                    operation = "startEpisode",
+                    success = false,
+                    errorMessage = "Exception: ${e.message}"
+                )
+            }
+        }
+    }
+
+    /**
+     * Update episode progress
+     */
+    fun updateEpisodeProgress(
+        journeyId: String,
+        episodeId: String,
+        progressPercentage: Float,
+        playPositionSeconds: Long
+    ) {
+        viewModelScope.launch {
+            try {
+                val token = authPrefs.firebaseToken
+                if (token.isNullOrEmpty()) {
+                    Logger.logViewModel(
+                        viewModel = "JourneyViewModel",
+                        operation = "updateEpisodeProgress",
+                        success = false,
+                        errorMessage = "Authentication token not found"
+                    )
+                    return@launch
+                }
+                
+                journeyRepository.updateEpisodeProgress(
+                    token = token,
+                    journeyId = journeyId,
+                    episodeId = episodeId,
+                    progressPercentage = progressPercentage,
+                    playPositionSeconds = playPositionSeconds
+                ).onSuccess { progress ->
+                    // Update local state
+                    val currentProgress = _episodeProgress.value.toMutableMap()
+                    val key = "${journeyId}_${episodeId}"
+                    currentProgress[key] = progress
+                    _episodeProgress.value = currentProgress
+                    
+                    // Update continue learning if this is the latest played
+                    _continueLearning.value = Pair(journeyId, episodeId)
+                    
+                    Logger.logViewModel(
+                        viewModel = "JourneyViewModel",
+                        operation = "updateEpisodeProgress",
+                        success = true
+                    )
+                }.onFailure { exception ->
+                    Logger.logViewModel(
+                        viewModel = "JourneyViewModel",
+                        operation = "updateEpisodeProgress",
+                        success = false,
+                        errorMessage = "Failed to update progress: ${exception.message}"
+                    )
+                }
+            } catch (e: Exception) {
+                Logger.logViewModel(
+                    viewModel = "JourneyViewModel",
+                    operation = "updateEpisodeProgress",
+                    success = false,
+                    errorMessage = "Exception: ${e.message}"
+                )
+            }
+        }
+    }
+
+    /**
+     * Get episode progress for a specific episode
+     */
+    fun getEpisodeProgress(journeyId: String, episodeId: String): EpisodeProgress? {
+        val key = "${journeyId}_${episodeId}"
+        return _episodeProgress.value[key]
+    }
+
+    /**
+     * Calculate completion rate for a journey
+     */
+    fun getJourneyCompletionRate(journeyId: String): Float {
+        val journey = _journeys.value.find { it.journeyId == journeyId }
+        if (journey == null || journey.episodes.isNullOrEmpty()) return 0f
+        
+        val totalEpisodes = journey.episodes.size
+        var completedEpisodes = 0
+        
+        journey.episodes.forEach { episode ->
+            val episodeId = "episode_${episode.episodeNumber}"
+            val progress = getEpisodeProgress(journeyId, episodeId)
+            if (progress?.isCompleted == true) {
+                completedEpisodes++
+            }
+        }
+        
+        return if (totalEpisodes > 0) (completedEpisodes.toFloat() / totalEpisodes) * 100f else 0f
+    }
+
+    /**
+     * Refresh continue learning data
+     */
+    fun refreshContinueLearning() {
+        viewModelScope.launch {
+            journeyRepository.getContinueLearning()
+                .onSuccess { continueLearningData ->
+                    _continueLearning.value = continueLearningData
+                }
+                .onFailure { exception ->
+                    Logger.logViewModel(
+                        viewModel = "JourneyViewModel",
+                        operation = "refreshContinueLearning",
+                        success = false,
+                        errorMessage = "Failed to refresh continue learning: ${exception.message}"
+                    )
+                }
+        }
+    }
+
+
 }

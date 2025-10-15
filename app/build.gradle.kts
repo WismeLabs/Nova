@@ -5,7 +5,10 @@ plugins {
     alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.hilt)
     alias(libs.plugins.google.services)
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.20"
 }
+
+import java.util.Properties
 
 android {
     namespace = "com.wisme.firstapp"
@@ -21,13 +24,33 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // Load keystore properties for AAB signing
+    val keystorePropertiesFile = rootProject.file("keystore.properties")
+    val keystoreProperties = Properties()
+    if (keystorePropertiesFile.exists()) {
+        keystoreProperties.load(keystorePropertiesFile.inputStream())
+    }
+
+    signingConfigs {
+        create("release") {
+            if (keystorePropertiesFile.exists()) {
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
@@ -40,6 +63,12 @@ android {
     buildFeatures {
         compose = true
         viewBinding = true
+    }
+    
+    bundle {
+        language {
+            enableSplit = false
+        }
     }
 }
 
@@ -94,10 +123,18 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
     
-    // Example: Room for Database
-    // implementation("androidx.room:room-runtime:2.5.0")
-    // implementation("androidx.room:room-ktx:2.5.0")
-    // kapt("androidx.room:room-compiler:2.5.0")
+    // Kotlinx Serialization
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+    
+    // Room for Database (Local Storage)
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    kapt("androidx.room:room-compiler:2.6.1")
+    
+    // WorkManager for Background Sync
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    implementation("androidx.hilt:hilt-work:1.1.0")
+    kapt("androidx.hilt:hilt-compiler:1.1.0")
     
     // 🧪 Testing dependencies (pre-configured)
     testImplementation(libs.junit)

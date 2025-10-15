@@ -1,6 +1,7 @@
 package com.wisme.firstapp.data.repository
 
 import com.wisme.firstapp.data.api.AuraApiService
+import com.wisme.firstapp.data.api.HealthApiService
 import com.wisme.firstapp.util.Logger
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
@@ -9,7 +10,8 @@ import javax.inject.Singleton
 
 @Singleton
 class ConnectivityRepository @Inject constructor(
-    private val apiService: AuraApiService
+    private val apiService: AuraApiService,
+    private val healthApiService: HealthApiService
 ) {
     
     /**
@@ -22,7 +24,7 @@ class ConnectivityRepository @Inject constructor(
         return try {
             // Set a timeout for health check
             withTimeout(5000) { // 5 seconds timeout
-                val response = apiService.healthCheck()
+                val response = healthApiService.healthCheck()
                 val responseTime = System.currentTimeMillis() - startTime
                 
                 if (response.isSuccessful) {

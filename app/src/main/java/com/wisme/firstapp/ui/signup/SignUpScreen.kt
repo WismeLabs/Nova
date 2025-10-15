@@ -13,11 +13,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,8 +39,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -53,6 +51,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.wisme.firstapp.R
 import com.wisme.firstapp.data.local.NavigationState
 import com.wisme.firstapp.viewmodel.AuthViewModel
+import com.wisme.firstapp.ui.utils.*
 
 @Composable
 fun SignUpScreen(
@@ -87,12 +86,46 @@ fun SignUpScreen(
         }
     }
     
-    // Show error message
-    LaunchedEffect(errorMessage) {
-        errorMessage?.let {
-            authViewModel.clearError()
-        }
-    }
+    // Error message will persist until user dismisses it manually
+    
+    SignUpScreenContent(
+        onNavigateToLogin = onNavigateToLogin,
+        onNavigateToProfileDetails = onNavigateToProfileDetails,
+        onNavigateToHome = onNavigateToHome,
+        onGoogleSignIn = onGoogleSignIn,
+        isLoading = isLoading,
+        errorMessage = errorMessage,
+        backendHealthy = backendHealthy,
+        onSignUpWithEmailPassword = { email, password, _ ->
+            authViewModel.signUpWithEmailPassword(email, password)
+        },
+        onClearError = { authViewModel.clearError() },
+        onRetryBackendConnection = { authViewModel.retryBackendConnection() }
+    )
+}
+
+@Composable
+fun SignUpScreenContent(
+    onNavigateToLogin: () -> Unit = {},
+    onNavigateToProfileDetails: () -> Unit = {},
+    onNavigateToHome: () -> Unit = {},
+    onGoogleSignIn: () -> Unit = {},
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
+    backendHealthy: Boolean = true,
+    onSignUpWithEmailPassword: (String, String, String) -> Unit = { _, _, _ -> },
+    onClearError: () -> Unit = {},
+    onRetryBackendConnection: () -> Unit = {}
+) {
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var isPasswordVisible by remember { mutableStateOf(false) }
+    var isConfirmPasswordVisible by remember { mutableStateOf(false) }
+    var emailError by remember { mutableStateOf<String?>(null) }
+    var passwordError by remember { mutableStateOf<String?>(null) }
+    var confirmPasswordError by remember { mutableStateOf<String?>(null) }
+    var hasAttemptedSubmit by remember { mutableStateOf(false) }
 
     val lightGreen = Color(0xFFC1FF72)
     val darkGreen = Color(0x33C0F062)
@@ -124,10 +157,26 @@ fun SignUpScreen(
     }
 
     fun validateForm(): Boolean {
-        emailError = validateEmail(email)
-        passwordError = validatePassword(password)
-        confirmPasswordError = validateConfirmPassword(password, confirmPassword)
-        return emailError == null && passwordError == null && confirmPasswordError == null
+        val emailValidation = validateEmail(email)
+        val passwordValidation = validatePassword(password)
+        val confirmPasswordValidation = validateConfirmPassword(password, confirmPassword)
+        
+        // Only show errors if user has attempted to submit
+        if (hasAttemptedSubmit) {
+            emailError = emailValidation
+            passwordError = passwordValidation
+            confirmPasswordError = confirmPasswordValidation
+        }
+        
+        return emailValidation == null && passwordValidation == null && confirmPasswordValidation == null
+    }
+    
+    fun validateFormForSubmit(): Boolean {
+        println("validateFormForSubmit called")
+        hasAttemptedSubmit = true
+        val result = validateForm()
+        println("validateFormForSubmit result: $result")
+        return result
     }
 
     Surface(
@@ -139,8 +188,8 @@ fun SignUpScreen(
                 .fillMaxSize()
                 .padding(horizontal = 19.dp),
         ) {
-            // Backend connectivity status banner
-            if (!backendHealthy) {
+            // Backend connectivity status banner - disabled for production to allow Firebase auth
+            if (false && !backendHealthy) {
                 Surface(
                     color = MaterialTheme.colorScheme.errorContainer,
                     modifier = Modifier
@@ -154,7 +203,7 @@ fun SignUpScreen(
                     ) {
                         Text(
                             text = "⚠️",
-                            fontSize = 20.sp
+                            style = ResponsiveTextStyles.titleMedium()
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Column(modifier = Modifier.weight(1f)) {
@@ -172,7 +221,7 @@ fun SignUpScreen(
                             }
                         }
                         Button(
-                            onClick = { authViewModel.retryBackendConnection() },
+                            onClick = { onRetryBackendConnection() },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.error
                             ),
@@ -191,17 +240,15 @@ fun SignUpScreen(
             //Sign up with google button
             Button(
                 onClick = { 
-                    if (backendHealthy) {
-                        onGoogleSignIn()
-                    }
+                    onGoogleSignIn()
                 },
-                enabled = backendHealthy && !isLoading,
+                enabled = !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(49.dp),
                 shape = RoundedCornerShape(48),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (backendHealthy) Color.White else Color.Gray,
+                    containerColor = Color.White,
                     disabledContainerColor = Color.Gray
                 )
             ) {
@@ -216,7 +263,11 @@ fun SignUpScreen(
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text("Sign up with Google", color = Color.Black, fontSize = 16.sp, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Sign up with Google", 
+                        color = Color.Black, 
+                        style = ResponsiveTextStyles.bodyLarge().copy(fontWeight = FontWeight.Bold)
+                    )
                 }
             }
             //"OR" Divider
@@ -224,14 +275,14 @@ fun SignUpScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(vertical = 24.dp)
             ) {
-                Divider(color = Color.Gray, modifier = Modifier.weight(1f))
+                HorizontalDivider(color = Color.Gray, modifier = Modifier.weight(1f))
                 Text(
                     "OR",
                     color = textGray,
                     modifier = Modifier.padding(horizontal = 5.dp),
-                    fontSize = 14.sp
+                    style = ResponsiveTextStyles.labelLarge()
                 )
-                Divider(color = Color.Gray, modifier = Modifier.weight(1f))
+                HorizontalDivider(color = Color.Gray, modifier = Modifier.weight(1f))
             }
             //Email
             Column {
@@ -285,7 +336,7 @@ fun SignUpScreen(
                     Text(
                         text = error,
                         color = Color.Red,
-                        fontSize = 12.sp,
+                        style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                     )
                 }
@@ -366,7 +417,7 @@ fun SignUpScreen(
                     Text(
                         text = error,
                         color = Color.Red,
-                        fontSize = 12.sp,
+                        style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                     )
                 }
@@ -446,20 +497,93 @@ fun SignUpScreen(
                     Text(
                         text = error,
                         color = Color.Red,
-                        fontSize = 12.sp,
+                        style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                     )
                 }
             }
 
+            // Authentication Error Display
+            errorMessage?.let { error ->
+                Spacer(modifier = Modifier.height(16.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "❌",
+                            style = ResponsiveTextStyles.titleMedium()
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Authentication Error",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Text(
+                                text = error,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                        Row {
+                            if (error.contains("already registered", ignoreCase = true)) {
+                                Button(
+                                    onClick = { 
+                                        onClearError()
+                                        onNavigateToLogin()
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = lightGreen
+                                    ),
+                                    modifier = Modifier.height(32.dp)
+                                ) {
+                                    Text(
+                                        text = "Sign In",
+                                        color = Color.Black,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            Button(
+                                onClick = { onClearError() },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error
+                                ),
+                                modifier = Modifier.height(32.dp)
+                            ) {
+                                Text(
+                                    text = "Dismiss",
+                                    color = MaterialTheme.colorScheme.onError,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(36.dp))
 
             //Sign Up Button
             Button(
                 onClick = { 
-                    if (backendHealthy && validateForm()) {
-                        authViewModel.signUpWithEmailPassword(email, password)
+                    println("SignUp button clicked - email: $email, password: $password")
+                    if (validateFormForSubmit()) {
+                        println("Form validation passed, calling onSignUpWithEmailPassword")
+                        onSignUpWithEmailPassword(email, password, confirmPassword)
+                    } else {
+                        println("Form validation failed")
                     }
                 },
                 modifier = Modifier
@@ -467,15 +591,23 @@ fun SignUpScreen(
                     .height(49.dp),
                 shape = RoundedCornerShape(48),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (backendHealthy) lightGreen else Color.Gray,
+                    containerColor = lightGreen,
                     disabledContainerColor = Color.Gray
                 ),
-                enabled = backendHealthy && !isLoading
+                enabled = !isLoading
             ) {
                 if (isLoading) {
-                    Text("Creating account...", color = Color.Black, fontSize = 18.sp, style=MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Creating account...", 
+                        color = Color.Black, 
+                        style = ResponsiveTextStyles.labelLarge().copy(fontWeight = FontWeight.Bold)
+                    )
                 } else {
-                    Text("Sign up for free", color = Color.Black, fontSize = 18.sp, style=MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Sign up for free", 
+                        color = Color.Black, 
+                        style = ResponsiveTextStyles.labelLarge().copy(fontWeight = FontWeight.Bold)
+                    )
                 }
             }
 
@@ -489,13 +621,11 @@ fun SignUpScreen(
                 horizontalArrangement = Arrangement.Center
             ) {
                 Text("Already have an account? ", color = Color.White)
-                ClickableText(
-                    text = AnnotatedString("Log in"),
-                    onClick = { onNavigateToLogin() },
-                    style = TextStyle(
-                        color = lightGreen,
-                        fontWeight = FontWeight.Bold
-                    )
+                Text(
+                    text = "Log in",
+                    color = lightGreen,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clickable { onNavigateToLogin() }
                 )
             }
         }
@@ -505,9 +635,16 @@ fun SignUpScreen(
 @Preview(showBackground = true)
 @Composable
 fun SignUpScreenPreview() {
-    SignUpScreen(
+    SignUpScreenContent(
         onNavigateToLogin = {},
         onNavigateToProfileDetails = {},
-        onGoogleSignIn = {}
+        onNavigateToHome = {},
+        onGoogleSignIn = {},
+        isLoading = false,
+        errorMessage = null,
+        backendHealthy = true,
+        onSignUpWithEmailPassword = { _, _, _ -> },
+        onClearError = {},
+        onRetryBackendConnection = {}
     )
 }

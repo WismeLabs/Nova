@@ -17,8 +17,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
@@ -46,6 +48,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import com.wisme.firstapp.ui.utils.ResponsiveTextStyles
+import com.wisme.firstapp.ui.utils.ResponsiveFontSizes
+import com.wisme.firstapp.ui.utils.ResponsiveSpacing
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -61,6 +66,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.wisme.firstapp.R
 import com.wisme.firstapp.data.local.NavigationState
 import com.wisme.firstapp.viewmodel.AuthViewModel
+import com.wisme.firstapp.ui.utils.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -222,12 +228,7 @@ fun ProfileDetailsScreen(
         }
     }
     
-    // Show error message
-    LaunchedEffect(errorMessage) {
-        errorMessage?.let {
-            authViewModel.clearError()
-        }
-    }
+    // Error message will persist until user dismisses it manually
 
     val avatars = listOf(
         R.drawable.avatar_1, R.drawable.avatar_2, R.drawable.avatar_3,
@@ -261,25 +262,15 @@ fun ProfileDetailsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 40.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
             ) {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.back_arrow),
-                        contentDescription = "Back",
-                        tint = Color.Unspecified
-                    )
-                }
-                Spacer(modifier = Modifier.weight(1f))
                 Text(
                     text = "Profile Details",
                     color = Color.White,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Medium
                 )
-                Spacer(modifier = Modifier.weight(1f))
-                // Placeholder for symmetry
-                Spacer(modifier = Modifier.size(48.dp))
             }
             
             Spacer(modifier = Modifier.height(40.dp))
@@ -299,7 +290,7 @@ fun ProfileDetailsScreen(
             }
 
             Spacer(modifier = Modifier.height(32.dp))
-            Text("Choose avatar", color = Color.White,style=MaterialTheme.typography.titleMedium, fontSize = 20.sp, fontWeight = FontWeight.Medium)
+            Text("Choose avatar", color = Color.White,style=MaterialTheme.typography.titleMedium, fontSize = ResponsiveFontSizes.heading(), fontWeight = FontWeight.Medium)
             Spacer(modifier = Modifier.height(16.dp))
 
             //Avatar row
@@ -317,7 +308,7 @@ fun ProfileDetailsScreen(
             }
 
             Spacer(modifier = Modifier.height(32.dp))
-            Text("Other details", color = Color.White,style=MaterialTheme.typography.titleMedium, fontSize = 20.sp, fontWeight = FontWeight.Medium, modifier = Modifier.align(Alignment.CenterHorizontally))
+            Text("Other details", color = Color.White,style=MaterialTheme.typography.titleMedium, fontSize = ResponsiveFontSizes.heading(), fontWeight = FontWeight.Medium, modifier = Modifier.align(Alignment.CenterHorizontally))
             Spacer(modifier = Modifier.height(16.dp))
 
             //Name
@@ -336,7 +327,7 @@ fun ProfileDetailsScreen(
                             nameError = null // Clear error on input
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Your name", color = textGray,style = MaterialTheme.typography.titleMedium,fontSize = 16.sp) },
+                        placeholder = { Text("Your name", color = textGray,style = MaterialTheme.typography.titleMedium,fontSize = ResponsiveFontSizes.body()) },
                         leadingIcon = { Icon(painterResource(id = R.drawable.person), contentDescription = null, tint = Color.Unspecified) },
                         shape = RoundedCornerShape(48.dp),
                         colors = TextFieldDefaults.colors(
@@ -353,7 +344,7 @@ fun ProfileDetailsScreen(
                     Text(
                         text = error,
                         color = Color.Red,
-                        fontSize = 12.sp,
+                        fontSize = ResponsiveFontSizes.caption(),
                         modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                     )
                 }
@@ -377,7 +368,7 @@ fun ProfileDetailsScreen(
                             displayNameError = null // Clear error on input
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Display name", color = textGray,style = MaterialTheme.typography.titleMedium,fontSize = 16.sp) },
+                        placeholder = { Text("Display name", color = textGray,style = MaterialTheme.typography.titleMedium,fontSize = ResponsiveFontSizes.body()) },
                         leadingIcon = { Icon(painterResource(id = R.drawable.person), contentDescription = null, tint = Color.Unspecified) },
                         shape = RoundedCornerShape(48.dp),
                         colors = TextFieldDefaults.colors(
@@ -394,7 +385,7 @@ fun ProfileDetailsScreen(
                     Text(
                         text = error,
                         color = Color.Red,
-                        fontSize = 12.sp,
+                        fontSize = ResponsiveFontSizes.caption(),
                         modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                     )
                 }
@@ -439,7 +430,7 @@ fun ProfileDetailsScreen(
                             text = if (dob.isNotEmpty()) dob else "Date of Birth (DD/MM/YYYY)",
                             color = if (dob.isNotEmpty()) Color.White else textGray,
                             style = MaterialTheme.typography.titleMedium,
-                            fontSize = 16.sp,
+                            fontSize = ResponsiveFontSizes.body(),
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -457,7 +448,7 @@ fun ProfileDetailsScreen(
                     Text(
                         text = error,
                         color = Color.Red,
-                        fontSize = 12.sp,
+                        fontSize = ResponsiveFontSizes.caption(),
                         modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                     )
                 }
@@ -485,7 +476,7 @@ fun ProfileDetailsScreen(
                                         if (char.isLowerCase()) char.titlecase() else char.toString() 
                                     }.replace("_", " ")
                                 },
-                                textStyle = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp),
+                                textStyle = MaterialTheme.typography.titleMedium.copy(fontSize = ResponsiveFontSizes.body()),
                                 onValueChange = {},
                                 readOnly = true,
                                 modifier = Modifier.fillMaxWidth(),
@@ -528,7 +519,7 @@ fun ProfileDetailsScreen(
                             )
                             TextField(
                                 value = selectedProfession.ifEmpty { "Profession" },
-                                textStyle = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp),
+                                textStyle = MaterialTheme.typography.titleMedium.copy(fontSize = ResponsiveFontSizes.body()),
                                 onValueChange = {},
                                 readOnly = true,
                                 modifier = Modifier.fillMaxWidth(),
@@ -559,7 +550,7 @@ fun ProfileDetailsScreen(
                         Text(
                             text = error,
                             color = Color.Red,
-                            fontSize = 12.sp,
+                            fontSize = ResponsiveFontSizes.caption(),
                             modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                         )
                     }
@@ -573,7 +564,7 @@ fun ProfileDetailsScreen(
                         Text(
                             text = error,
                             color = Color.Red,
-                            fontSize = 12.sp,
+                            fontSize = ResponsiveFontSizes.caption(),
                             modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                         )
                     }
@@ -585,9 +576,61 @@ fun ProfileDetailsScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
+            // Error Message Display
+            errorMessage?.let { error ->
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "❌",
+                            fontSize = ResponsiveFontSizes.heading()
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Profile Setup Error",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Text(
+                                text = error,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                        Button(
+                            onClick = { authViewModel.clearError() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            ),
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Text(
+                                text = "Dismiss",
+                                color = MaterialTheme.colorScheme.onError,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
             Button(
                 onClick = {
+                    println("Complete Profile button clicked")
+                    println("Form data - name: '$name', displayName: '$displayName', dob: '$dob', gender: '$selectedGender', profession: '$selectedProfession'")
+                    
                     if (validateForm()) {
+                        println("Form validation passed, calling completeProfile")
                         authViewModel.completeProfile(
                             name = name,
                             displayName = displayName,
@@ -603,6 +646,14 @@ fun ProfileDetailsScreen(
                                 else -> 1
                             }
                         )
+                    } else {
+                        println("Form validation failed")
+                        println("Validation errors:")
+                        println("- nameError: $nameError")
+                        println("- displayNameError: $displayNameError") 
+                        println("- dobError: $dobError")
+                        println("- genderError: $genderError")
+                        println("- professionError: $professionError")
                     }
                 },
                 colors = ButtonDefaults.buttonColors(
@@ -622,9 +673,9 @@ fun ProfileDetailsScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     if (isLoading) {
-                        Text("Saving...",style = MaterialTheme.typography.bodyMedium,fontSize = 18.sp,fontWeight = FontWeight.SemiBold)
+                        Text("Saving...",style = MaterialTheme.typography.bodyMedium,fontSize = ResponsiveFontSizes.bodyLarge(),fontWeight = FontWeight.SemiBold)
                     } else {
-                        Text("Complete Profile",style = MaterialTheme.typography.bodyMedium,fontSize = 18.sp,fontWeight = FontWeight.SemiBold)
+                        Text("Complete Profile",style = MaterialTheme.typography.bodyMedium,fontSize = ResponsiveFontSizes.bodyLarge(),fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -823,6 +874,7 @@ private fun ProfileDetailsScreenContent() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -869,7 +921,7 @@ private fun ProfileDetailsScreenContent() {
             }
 
             Spacer(modifier = Modifier.height(32.dp))
-            Text("Choose avatar", color = Color.White,style=MaterialTheme.typography.titleMedium, fontSize = 20.sp, fontWeight = FontWeight.Medium)
+            Text("Choose avatar", color = Color.White,style=MaterialTheme.typography.titleMedium, fontSize = ResponsiveFontSizes.heading(), fontWeight = FontWeight.Medium)
             Spacer(modifier = Modifier.height(16.dp))
 
             //Avatar row
@@ -887,7 +939,7 @@ private fun ProfileDetailsScreenContent() {
             }
 
             Spacer(modifier = Modifier.height(32.dp))
-            Text("Other details", color = Color.White,style=MaterialTheme.typography.titleMedium, fontSize = 20.sp, fontWeight = FontWeight.Medium, modifier = Modifier.align(Alignment.CenterHorizontally))
+            Text("Other details", color = Color.White,style=MaterialTheme.typography.titleMedium, fontSize = ResponsiveFontSizes.heading(), fontWeight = FontWeight.Medium, modifier = Modifier.align(Alignment.CenterHorizontally))
             Spacer(modifier = Modifier.height(16.dp))
 
             //Name
@@ -906,7 +958,7 @@ private fun ProfileDetailsScreenContent() {
                             nameError = null // Clear error on input
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Your name", color = textGray,style = MaterialTheme.typography.titleMedium,fontSize = 16.sp) },
+                        placeholder = { Text("Your name", color = textGray,style = MaterialTheme.typography.titleMedium,fontSize = ResponsiveFontSizes.body()) },
                         leadingIcon = { Icon(painterResource(id = R.drawable.person), contentDescription = null, tint = Color.Unspecified) },
                         shape = RoundedCornerShape(48.dp),
                         colors = TextFieldDefaults.colors(
@@ -923,7 +975,7 @@ private fun ProfileDetailsScreenContent() {
                     Text(
                         text = error,
                         color = Color.Red,
-                        fontSize = 12.sp,
+                        fontSize = ResponsiveFontSizes.caption(),
                         modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                     )
                 }
@@ -947,7 +999,7 @@ private fun ProfileDetailsScreenContent() {
                             displayNameError = null // Clear error on input
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Display name", color = textGray,style = MaterialTheme.typography.titleMedium,fontSize = 16.sp) },
+                        placeholder = { Text("Display name", color = textGray,style = MaterialTheme.typography.titleMedium,fontSize = ResponsiveFontSizes.body()) },
                         leadingIcon = { Icon(painterResource(id = R.drawable.person), contentDescription = null, tint = Color.Unspecified) },
                         shape = RoundedCornerShape(48.dp),
                         colors = TextFieldDefaults.colors(
@@ -964,7 +1016,7 @@ private fun ProfileDetailsScreenContent() {
                     Text(
                         text = error,
                         color = Color.Red,
-                        fontSize = 12.sp,
+                        fontSize = ResponsiveFontSizes.caption(),
                         modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                     )
                 }
@@ -988,9 +1040,8 @@ private fun ProfileDetailsScreenContent() {
                             dobError = null // Clear error on input
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Date of Birth (DD/MM/YYYY)", color = textGray,style = MaterialTheme.typography.titleMedium,fontSize = 16.sp) },
+                        placeholder = { Text("Date of Birth (DD/MM/YYYY)", color = textGray,style = MaterialTheme.typography.titleMedium,fontSize = ResponsiveFontSizes.body()) },
                         leadingIcon = { Icon(painterResource(id = R.drawable.date), contentDescription = null, tint = Color.Unspecified) },
-                        trailingIcon = { Icon(painterResource(id = R.drawable.calendar), contentDescription = null, tint = Color.Unspecified) },
                         shape = RoundedCornerShape(48.dp),
                         colors = TextFieldDefaults.colors(
                             focusedTextColor = Color.White, unfocusedTextColor = Color.White, cursorColor = lightGreen,
@@ -1006,7 +1057,7 @@ private fun ProfileDetailsScreenContent() {
                     Text(
                         text = error,
                         color = Color.Red,
-                        fontSize = 12.sp,
+                        fontSize = ResponsiveFontSizes.caption(),
                         modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                     )
                 }
@@ -1132,9 +1183,9 @@ private fun ProfileDetailsScreenContent() {
                     contentAlignment = Alignment.Center
                 ) {
                     if (isLoading) {
-                        Text("Saving...",style = MaterialTheme.typography.bodyMedium,fontSize = 18.sp,fontWeight = FontWeight.SemiBold)
+                        Text("Saving...",style = MaterialTheme.typography.bodyMedium,fontSize = ResponsiveFontSizes.bodyLarge(),fontWeight = FontWeight.SemiBold)
                     } else {
-                        Text("Complete Profile",style = MaterialTheme.typography.bodyMedium,fontSize = 18.sp,fontWeight = FontWeight.SemiBold)
+                        Text("Complete Profile",style = MaterialTheme.typography.bodyMedium,fontSize = ResponsiveFontSizes.bodyLarge(),fontWeight = FontWeight.SemiBold)
                     }
                 }
             }

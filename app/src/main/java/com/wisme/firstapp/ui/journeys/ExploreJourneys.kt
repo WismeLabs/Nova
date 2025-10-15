@@ -20,11 +20,15 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,16 +41,24 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.wisme.firstapp.ui.utils.ResponsiveTextStyles
+import com.wisme.firstapp.ui.utils.ResponsiveSpacing
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.wisme.firstapp.R
+import com.wisme.firstapp.data.local.AuthPreferences
 import com.wisme.firstapp.domain.JourneysDataClass
 //import com.wisme.firstapp.domain.EpisodeDataClass
+import com.wisme.firstapp.ui.common.Scaffold
 import com.wisme.firstapp.viewmodel.JourneyViewModel
 
 @Composable
 fun ExploreJourneys(
     viewModel: JourneyViewModel = hiltViewModel(),
-    onJourneyClick: (JourneysDataClass) -> Unit = {}
+    authPrefs: AuthPreferences,
+    onJourneyClick: (JourneysDataClass) -> Unit = {},
+    onNavigateToHome: () -> Unit = {},
+    onNavigateToFeedback: () -> Unit = {},
+    onProfileClick: () -> Unit = {}
 ) {
     val journeys by viewModel.journeys.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -56,7 +68,11 @@ fun ExploreJourneys(
         journeys = journeys,
         isLoading = isLoading,
         errorMessage = errorMessage,
-        onJourneyClick = onJourneyClick
+        authPrefs = authPrefs,
+        onJourneyClick = onJourneyClick,
+        onNavigateToHome = onNavigateToHome,
+        onNavigateToFeedback = onNavigateToFeedback,
+        onProfileClick = onProfileClick
     )
 }
 
@@ -65,25 +81,45 @@ fun ExploreJourneysContent(
     journeys: List<JourneysDataClass>,
     isLoading: Boolean = false,
     errorMessage: String? = null,
-    onJourneyClick: (JourneysDataClass) -> Unit = {}
+    authPrefs: AuthPreferences,
+    onJourneyClick: (JourneysDataClass) -> Unit = {},
+    onNavigateToHome: () -> Unit = {},
+    onNavigateToFeedback: () -> Unit = {},
+    onProfileClick: () -> Unit = {}
 ) {
-    Surface(
-        color = Color.Black,
-        modifier = Modifier.fillMaxSize()
-    ) {
+    // Get user data for header
+    val username = remember { authPrefs.userDisplayName ?: authPrefs.userName ?: "Explorer" }
+    val userAvatarId = remember { authPrefs.userAvatarId }
+    val avatarResource = remember(userAvatarId) {
+        when (userAvatarId) {
+            1 -> R.drawable.avatar_1
+            2 -> R.drawable.avatar_2
+            3 -> R.drawable.avatar_3
+            4 -> R.drawable.avatar_4
+            5 -> R.drawable.avatar_5
+            else -> R.drawable.avatar_1 // Default fallback
+        }
+    }
+
+    Scaffold(
+        username = username,
+        avatarResId = avatarResource,
+        onAvatarClick = onProfileClick,
+        onNavigateToHome = onNavigateToHome,
+        onNavigateToFeedback = onNavigateToFeedback
+    ) { paddingValues ->
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(horizontal = 39.dp, vertical = 85.dp)
+                .padding(paddingValues)
+                .padding(horizontal = ResponsiveSpacing.large(), vertical = ResponsiveSpacing.medium())
         ) {
             Text(
                 text = "Choose Your Journey",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 24.sp,
+                style = ResponsiveTextStyles.headlineMedium().copy(fontWeight = FontWeight.SemiBold),
                 color = Color.White
             )
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(ResponsiveSpacing.extraLarge()))
 
             // Show loading or error state
             if (isLoading) {
@@ -91,7 +127,7 @@ fun ExploreJourneysContent(
                     text = "Loading journeys...",
                     color = Color.White,
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(vertical = 20.dp)
+                    modifier = Modifier.padding(vertical = ResponsiveSpacing.large())
                 )
             } else if (errorMessage != null) {
                 Column {
@@ -99,23 +135,44 @@ fun ExploreJourneysContent(
                         text = "Error: $errorMessage",
                         color = Color.Red,
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(vertical = 10.dp)
+                        modifier = Modifier.padding(vertical = ResponsiveSpacing.small())
                     )
                     Text(
                         text = "Showing sample journeys instead",
                         color = Color.Gray,
                         style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(bottom = 20.dp)
+                        modifier = Modifier.padding(bottom = ResponsiveSpacing.large())
                     )
                 }
             }
 
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(20.dp),
-                contentPadding = PaddingValues(bottom = 36.dp)
-            ) {
-                items(journeys) { journey ->
-                    JourneyItem(journey = journey, onJourneyClick = onJourneyClick)
+            // Handle empty state
+            if (!isLoading && errorMessage == null && journeys.isEmpty()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "No journeys available",
+                        color = Color.Gray,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(vertical = ResponsiveSpacing.large())
+                    )
+                    Text(
+                        text = "Check back later for new learning journeys!",
+                        color = Color.Gray,
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(ResponsiveSpacing.large()),
+                    contentPadding = PaddingValues(bottom = ResponsiveSpacing.extraLarge())
+                ) {
+                    items(journeys) { journey ->
+                        JourneyItem(journey = journey, onJourneyClick = onJourneyClick)
+                    }
                 }
             }
 
@@ -129,10 +186,8 @@ fun ExploreJourneysContent(
                     text = "On request journey generation\nfor any topic coming soon",
                     textAlign = TextAlign.Center,
                     color = Color.White,
-                    style= MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 15.sp,
-                    modifier = Modifier.padding(vertical = 10.dp, horizontal = 48.dp)
+                    style = ResponsiveTextStyles.bodyMedium().copy(fontWeight = FontWeight.Medium),
+                    modifier = Modifier.padding(vertical = ResponsiveSpacing.small(), horizontal = ResponsiveSpacing.extraLarge())
                 )
             }
         }
@@ -152,12 +207,25 @@ fun JourneyItem(
     ) {
         Row(
             modifier = Modifier
-                .padding(12.dp)
+                .padding(ResponsiveSpacing.medium())
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Journey-specific image
+            val journeyImageResource = remember(journey.JourneyName) {
+                when (journey.JourneyName.lowercase()) {
+                "dsa & coding interviews", 
+                "dsa / cracking coding interviews" -> R.drawable.journey_dsa
+                "personal finance mastery", 
+                "personal finance" -> R.drawable.journey_personal_finance
+                "hackathon success guide",
+                "hackathon success" -> R.drawable.journey_hackathon
+                else -> R.drawable.journey_dsa // Default fallback
+                }
+            }
+            
             Image(
-                painter = painterResource(R.drawable.sample_journey),
+                painter = painterResource(id = journeyImageResource),
                 contentDescription = journey.JourneyName,
                 modifier = Modifier
                     .size(70.dp)
@@ -165,31 +233,28 @@ fun JourneyItem(
                 contentScale = ContentScale.Crop
             )
 
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(ResponsiveSpacing.small()))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = journey.JourneyName,
                     color = Color.White,
-                    style= MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 16.sp,
-                    modifier=Modifier.padding(top=5.dp),
+                    style = ResponsiveTextStyles.bodyLarge().copy(fontWeight = FontWeight.Medium),
+                    modifier = Modifier.padding(top = ResponsiveSpacing.extraSmall()),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(ResponsiveSpacing.extraSmall()))
                 Text(
                     text = journey.JourneyDescription,
                     color = Color.White,
-                    style= MaterialTheme.typography.bodySmall,
-                    fontSize = 12.sp,
+                    style = ResponsiveTextStyles.bodySmall(),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
                 
                 // Display journey duration and episode count
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(ResponsiveSpacing.extraSmall()))
                 val durationText = if (journey.totalDurationMinutes > 0) {
                     "${journey.totalDurationMinutes} min"
                 } else {
@@ -203,12 +268,11 @@ fun JourneyItem(
                 Text(
                     text = "$durationText • $episodeText",
                     color = Color(0xFFC1FF72), // Light green accent
-                    style = MaterialTheme.typography.bodySmall,
-                    fontSize = 11.sp
+                    style = ResponsiveTextStyles.bodySmall()
                 )
             }
 
-            Spacer(modifier = Modifier.width(36.dp))
+            Spacer(modifier = Modifier.width(ResponsiveSpacing.extraLarge()))
 
             Icon(
                 painter = painterResource(R.drawable.arrow),
@@ -229,6 +293,7 @@ fun ExploreJourneysPreview() {
             JourneyName = "DSA / Cracking Coding Interviews", 
             JourneyDescription = "Help students crack coding interviews, from basics to advanced topics",
             JourneyImg = "journey1",
+            journeyId = "dsa_coding_interviews", // Database ID
             totalDurationMinutes = 0, // Will be fetched dynamically from audio files
             episodes = listOf() // Empty for preview
         ),
@@ -236,6 +301,7 @@ fun ExploreJourneysPreview() {
             JourneyName = "Personal Finance", 
             JourneyDescription = "Teach foundational personal finance and modern investment trends",
             JourneyImg = "journey2",
+            journeyId = "personal_finance", // Database ID
             totalDurationMinutes = 0,
             episodes = listOf()
         ),
@@ -243,14 +309,127 @@ fun ExploreJourneysPreview() {
             JourneyName = "How to win Hackathons", 
             JourneyDescription = "Equip students with proven strategies to consistently perform and win hackathons",
             JourneyImg = "journey3",
+            journeyId = "hackathon_success", // Database ID
             totalDurationMinutes = 0,
             episodes = listOf()
         )
     )
     
-    ExploreJourneysContent(
-        journeys = sampleJourneys,
-        isLoading = false,
-        errorMessage = null
-    )
+    // Simplified preview using Material3 Scaffold instead of custom one
+    androidx.compose.material3.Scaffold(
+        containerColor = Color.Black,
+        topBar = {
+            Text(
+                text = "Hi Explorer! 👋",
+                color = Color.White,
+                style = ResponsiveTextStyles.titleMedium().copy(fontWeight = FontWeight.SemiBold),
+                modifier = Modifier.padding(ResponsiveSpacing.medium())
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = ResponsiveSpacing.large(), vertical = ResponsiveSpacing.medium())
+        ) {
+            Text(
+                text = "Choose Your Journey",
+                style = ResponsiveTextStyles.headlineMedium().copy(fontWeight = FontWeight.SemiBold),
+                color = Color.White
+            )
+            
+            LazyColumn(
+                contentPadding = PaddingValues(vertical = ResponsiveSpacing.large()),
+                verticalArrangement = Arrangement.spacedBy(ResponsiveSpacing.medium())
+            ) {
+                items(sampleJourneys) { journey ->
+                    JourneyItem(
+                        journey = journey,
+                        onJourneyClick = { }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ExploreJourneysBottomNavigationBar(
+    onNavigateToHome: () -> Unit = {},
+    onNavigateToFeedback: () -> Unit = {}
+) {
+    val lightGreen = Color(0xFFC1FF72)
+    
+    NavigationBar(
+        containerColor = Color(0xFF27272A),
+        modifier = Modifier.height(90.dp)
+    ) {
+        NavigationBarItem(
+            label = { 
+                Text(
+                    "Learn",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = lightGreen // Highlighting current section
+                )
+            },
+            selected = true,
+            onClick = { /* Already on Learn/Journeys screen */ },
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.learn),
+                    contentDescription = "Learn",
+                    tint = lightGreen
+                )
+            },
+            modifier = Modifier.padding(top = 10.dp),
+            colors = NavigationBarItemDefaults.colors(
+                indicatorColor = Color.Transparent
+            )
+        )
+        NavigationBarItem(
+            label = { 
+                Text(
+                    "Home",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White
+                )
+            },
+            selected = false,
+            onClick = onNavigateToHome,
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.home_icon),
+                    contentDescription = "Home",
+                    tint = Color.White
+                )
+            },
+            modifier = Modifier.padding(top = 10.dp),
+            colors = NavigationBarItemDefaults.colors(
+                indicatorColor = Color.Transparent
+            )
+        )
+        NavigationBarItem(
+            label = { 
+                Text(
+                    "Feedback",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White
+                )
+            },
+            selected = false,
+            onClick = onNavigateToFeedback,
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.feedback),
+                    contentDescription = "Feedback",
+                    tint = Color.White
+                )
+            },
+            modifier = Modifier.padding(top = 10.dp),
+            colors = NavigationBarItemDefaults.colors(
+                indicatorColor = Color.Transparent
+            )
+        )
+    }
 }

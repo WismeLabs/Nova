@@ -1,6 +1,11 @@
 package com.wisme.firstapp
 
+import android.os.Build
 import android.os.Bundle
+import android.view.View
+import android.view.WindowInsets
+import android.view.WindowInsetsController
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -9,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.core.view.WindowCompat
 import androidx.navigation.compose.rememberNavController
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -18,12 +24,14 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.wisme.firstapp.navigation.NovaNavigation
 import com.wisme.firstapp.theme.AppTheme
 import com.wisme.firstapp.viewmodel.AuthViewModel
+import com.wisme.firstapp.viewmodel.JourneyViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     
     private val authViewModel: AuthViewModel by viewModels()
+    private val journeyViewModel: JourneyViewModel by viewModels()
     private lateinit var googleSignInClient: GoogleSignInClient
     
     private val googleSignInLauncher = registerForActivityResult(
@@ -49,6 +57,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // Apply safe immersive mode
+        setupSafeImmersiveMode()
+        
         // Configure Google Sign-In
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
@@ -67,6 +78,7 @@ class MainActivity : ComponentActivity() {
                     NovaNavigation(
                         navController = navController,
                         authViewModel = authViewModel,
+                        journeyViewModel = journeyViewModel,
                         onGoogleSignIn = {
                             val signInIntent = googleSignInClient.signInIntent
                             googleSignInLauncher.launch(signInIntent)
@@ -74,6 +86,35 @@ class MainActivity : ComponentActivity() {
                     )
                 }
             }
+        }
+    }
+    
+    private fun setupSafeImmersiveMode() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                // Android 11+ - Simple approach
+                window.insetsController?.let { controller ->
+                    controller.hide(WindowInsets.Type.navigationBars())
+                    controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                }
+            } else {
+                // Older Android - Basic fullscreen
+                @Suppress("DEPRECATION")
+                window.decorView.systemUiVisibility = (
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                )
+            }
+        } catch (e: Exception) {
+            // Silently continue if immersive mode fails
+        }
+    }
+    
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        // Re-apply safe immersive mode when app regains focus
+        if (hasFocus) {
+            setupSafeImmersiveMode()
         }
     }
 }

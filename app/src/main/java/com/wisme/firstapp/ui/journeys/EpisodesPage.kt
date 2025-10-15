@@ -2,6 +2,7 @@ package com.wisme.firstapp.ui.journeys
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -32,6 +38,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.wisme.firstapp.ui.utils.ResponsiveTextStyles
+import com.wisme.firstapp.ui.utils.ResponsiveFontSizes
+import com.wisme.firstapp.ui.utils.ResponsiveSpacing
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.wisme.firstapp.R
@@ -41,6 +50,7 @@ import com.wisme.firstapp.viewmodel.JourneyViewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 
 val darkBackground = Color(0xFF121212)
 val textGreen = Color(0XFFC1FF72)
@@ -49,7 +59,11 @@ val olive = Color(0XFF4a5c34)
 @Composable
 fun EpisodesPage(
     journeyName: String,
-    viewModel: JourneyViewModel = hiltViewModel()
+    viewModel: JourneyViewModel = hiltViewModel(),
+    onEpisodeClick: (JourneysDataClass, EpisodeDataClass) -> Unit = { _, _ -> },
+    onNavigateToHome: () -> Unit = {},
+    onNavigateToJourneys: () -> Unit = {},
+    onNavigateToFeedback: () -> Unit = {}
 ) {
     val journeys by viewModel.journeys.collectAsState()
     
@@ -59,40 +73,59 @@ fun EpisodesPage(
         journey.JourneyName.replace("/", "_").replace(" ", "_").equals(journeyName.replace(" ", "_"), ignoreCase = true)
     }
     
-    if (currentJourney != null) {
-        EpisodesScreenContent(
-            journey = currentJourney,
-            episodes = currentJourney.episodes
-        )
-    } else {
-        // Show loading or fallback
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(darkBackground),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "Loading journey...",
-                    color = Color.White,
-                    fontSize = 16.sp
-                )
-                Text(
-                    text = "Journey: $journeyName",
-                    color = Color.Gray,
-                    fontSize = 14.sp
-                )
+    Scaffold(
+        containerColor = darkBackground,
+        bottomBar = {
+            EpisodesBottomNavigationBar(
+                onNavigateToHome = onNavigateToHome,
+                onNavigateToJourneys = onNavigateToJourneys,
+                onNavigateToFeedback = onNavigateToFeedback
+            )
+        }
+    ) { paddingValues ->
+        if (currentJourney != null) {
+            EpisodesScreenContent(
+                journey = currentJourney,
+                episodes = currentJourney.episodes,
+                onEpisodeClick = onEpisodeClick,
+                modifier = Modifier.padding(paddingValues)
+            )
+        } else {
+            // Show loading or fallback
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(darkBackground)
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Loading journey...",
+                        color = Color.White,
+                        fontSize = ResponsiveFontSizes.body()
+                    )
+                    Text(
+                        text = "Journey: $journeyName",
+                        color = Color.Gray,
+                        fontSize = ResponsiveFontSizes.bodySmall()
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun EpisodesScreenContent(journey: JourneysDataClass, episodes: List<EpisodeDataClass>) {
+fun EpisodesScreenContent(
+    journey: JourneysDataClass, 
+    episodes: List<EpisodeDataClass>,
+    onEpisodeClick: (JourneysDataClass, EpisodeDataClass) -> Unit = { _, _ -> },
+    modifier: Modifier = Modifier
+) {
 
     LazyColumn(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(darkBackground)
             .padding(horizontal = 16.dp).padding(top=32.dp)
@@ -116,15 +149,28 @@ fun EpisodesScreenContent(journey: JourneysDataClass, episodes: List<EpisodeData
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = "Personalised", color = Color(0XFFC1FF72), fontSize = 14.sp)
+                    Text(text = "Personalised", color = Color(0XFFC1FF72), fontSize = ResponsiveFontSizes.bodySmall())
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 //Journey description
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Journey-specific image
+                    val journeyImageResource = remember(journey.JourneyName) {
+                        when (journey.JourneyName.lowercase()) {
+                            "dsa & coding interviews", 
+                            "dsa / cracking coding interviews" -> R.drawable.journey_dsa
+                            "personal finance mastery", 
+                            "personal finance" -> R.drawable.journey_personal_finance
+                            "hackathon success guide",
+                            "hackathon success" -> R.drawable.journey_hackathon
+                            else -> R.drawable.journey_dsa // Default fallback
+                        }
+                    }
+                    
                     Image(
-                        painter = painterResource(id = R.drawable.sample_journey), // Replace with JourneyImg
+                        painter = painterResource(id = journeyImageResource),
                         contentDescription = journey.JourneyName,
                         modifier = Modifier
                             .size(80.dp)
@@ -132,18 +178,14 @@ fun EpisodesScreenContent(journey: JourneysDataClass, episodes: List<EpisodeData
                     )
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
-                        Text(text = journey.JourneyName, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                        Text(text = journey.JourneyName, color = Color.White, fontSize = ResponsiveFontSizes.headingLarge(), fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            InfoChip(text = "Some Knowledge")
-                            InfoChip(text = "8 min episodes")
-                        }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text(text = journey.JourneyDescription, color = Color.White, fontSize = 16.sp)
+                Text(text = journey.JourneyDescription, color = Color.White, fontSize = ResponsiveFontSizes.body())
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -151,9 +193,9 @@ fun EpisodesScreenContent(journey: JourneysDataClass, episodes: List<EpisodeData
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(painter = painterResource(id = R.drawable.clock), contentDescription = "Episodes count", tint = Color.Unspecified, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "${episodes.size} episodes", color = textGreen, fontSize = 14.sp)
+                        Text(text = "${episodes.size} episodes", color = textGreen, fontSize = ResponsiveFontSizes.bodySmall())
                     }
-                    Text(text = "~32 minutes total", color = textGreen, fontSize = 14.sp)
+                    Text(text = "~32 minutes total", color = textGreen, fontSize = ResponsiveFontSizes.bodySmall())
                 }
                 Spacer(modifier = Modifier.height(32.dp))
             }
@@ -166,8 +208,17 @@ fun EpisodesScreenContent(journey: JourneysDataClass, episodes: List<EpisodeData
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(text = "Episodes", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                TextButton(onClick = { /* Start from beginning */ }) {
+                Text(text = "Episodes", color = Color.White, fontSize = ResponsiveFontSizes.heading(), fontWeight = FontWeight.Bold)
+                TextButton(onClick = { 
+                    println("EpisodesPage: 'Start from beginning' button clicked")
+                    if (episodes.isNotEmpty()) {
+                        val firstEpisode = episodes.first()
+                        println("EpisodesPage: Starting first episode: ${firstEpisode.title}")
+                        onEpisodeClick(journey, firstEpisode)
+                    } else {
+                        println("EpisodesPage: No episodes available to start")
+                    }
+                }) {
                     Icon(imageVector = Icons.Default.PlayArrow, contentDescription = "Start", tint = Color(0xFFC1FF72), modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(text = "Start from beginning", color = textGreen)
@@ -178,14 +229,23 @@ fun EpisodesScreenContent(journey: JourneysDataClass, episodes: List<EpisodeData
 
         //Episodes list
         items(episodes) { episode ->
-            EpisodeItem(episode = episode)
+            EpisodeItem(
+                episode = episode,
+                onClick = { 
+                    println("EpisodesPage: Episode clicked - Journey: ${journey.JourneyName}, Episode: ${episode.title}")
+                    onEpisodeClick(journey, episode) 
+                }
+            )
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
 
 @Composable
-fun EpisodeItem(episode: EpisodeDataClass) {
+fun EpisodeItem(
+    episode: EpisodeDataClass,
+    onClick: () -> Unit = {}
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -200,19 +260,24 @@ fun EpisodeItem(episode: EpisodeDataClass) {
             Text(
                 text = episode.episodeNumber.toString(),
                 color = textGreen,
-                fontSize = 20.sp,
+                fontSize = ResponsiveFontSizes.heading(),
                 fontWeight = FontWeight.Bold
             )
         }
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = episode.title, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text(text = episode.title, color = Color.White, fontSize = ResponsiveFontSizes.body(), fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(4.dp))
-            Text(text = episode.description, color = Color.Gray, fontSize = 14.sp, maxLines = 2)
+            Text(text = episode.description, color = Color.Gray, fontSize = ResponsiveFontSizes.bodySmall(), maxLines = 2)
         }
         Spacer(modifier = Modifier.width(16.dp))
         IconButton(
-            onClick = { /* Play episode */ },
+            onClick = {
+                println("EpisodesPage: Play button (IconButton) clicked for episode: ${episode.title} (Episode ${episode.episodeNumber})")
+                println("EpisodesPage: About to call onClick() function")
+                onClick() // Use the same onClick as the row
+                println("EpisodesPage: onClick() function called successfully")
+            },
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
@@ -231,7 +296,7 @@ fun InfoChip(text: String) {
             .background(olive)
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        Text(text = text, color = Color(0XFFe9ebe6), fontSize = 12.sp)
+        Text(text = text, color = Color(0XFFe9ebe6), fontSize = ResponsiveFontSizes.caption())
     }
 }
 
@@ -242,7 +307,8 @@ fun EpisodesScreenPreview() {
     val sampleJourney = JourneysDataClass(
         JourneyName = "Human Psychology",
         JourneyDescription = "Discover the fascinating world of human psychology and understand what drives our behaviour",
-        JourneyImg = ""
+        JourneyImg = "",
+        journeyId = "human_psychology" // Sample database ID
     )
 
     val sampleEpisodes = listOf(
@@ -253,4 +319,85 @@ fun EpisodesScreenPreview() {
     )
 
     EpisodesScreenContent(journey = sampleJourney, episodes = sampleEpisodes)
+}
+
+@Composable
+fun EpisodesBottomNavigationBar(
+    onNavigateToHome: () -> Unit = {},
+    onNavigateToJourneys: () -> Unit = {},
+    onNavigateToFeedback: () -> Unit = {}
+) {
+    val lightGreen = Color(0xFFC1FF72)
+    
+    NavigationBar(
+        containerColor = Color(0xFF27272A),
+        modifier = Modifier.height(90.dp)
+    ) {
+        NavigationBarItem(
+            label = { 
+                Text(
+                    "Learn",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = lightGreen // Highlighting current section
+                )
+            },
+            selected = true,
+            onClick = onNavigateToJourneys,
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.learn),
+                    contentDescription = "Learn",
+                    tint = lightGreen
+                )
+            },
+            modifier = Modifier.padding(top = 10.dp),
+            colors = NavigationBarItemDefaults.colors(
+                indicatorColor = Color.Transparent
+            )
+        )
+        NavigationBarItem(
+            label = { 
+                Text(
+                    "Home",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White
+                )
+            },
+            selected = false,
+            onClick = onNavigateToHome,
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.home_icon),
+                    contentDescription = "Home",
+                    tint = Color.White
+                )
+            },
+            modifier = Modifier.padding(top = 10.dp),
+            colors = NavigationBarItemDefaults.colors(
+                indicatorColor = Color.Transparent
+            )
+        )
+        NavigationBarItem(
+            label = { 
+                Text(
+                    "Feedback",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White
+                )
+            },
+            selected = false,
+            onClick = onNavigateToFeedback,
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.feedback),
+                    contentDescription = "Feedback",
+                    tint = Color.White
+                )
+            },
+            modifier = Modifier.padding(top = 10.dp),
+            colors = NavigationBarItemDefaults.colors(
+                indicatorColor = Color.Transparent
+            )
+        )
+    }
 }

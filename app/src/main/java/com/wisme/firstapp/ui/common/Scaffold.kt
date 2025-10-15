@@ -1,9 +1,10 @@
 package com.wisme.firstapp.ui.common
 
-import ProfileScreen
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,24 +35,47 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wisme.firstapp.R
 import com.wisme.firstapp.ui.home.HomeScreen
+import com.wisme.firstapp.ui.utils.ResponsiveFontSizes
+import com.wisme.firstapp.ui.utils.ResponsiveSpacing
 
 @Composable
-fun Scaffold(){
+fun Scaffold(
+    onNavigateToHome: () -> Unit = {},
+    onNavigateToJourneys: () -> Unit = {},
+    onNavigateToFeedback: () -> Unit = {},
+    currentRoute: String = "home",
+    username: String = "User",
+    avatarResId: Int = R.drawable.avatar_1,
+    onAvatarClick: () -> Unit = {},
+    content: @Composable (PaddingValues) -> Unit = {}
+){
     Scaffold(
         containerColor = Color.Black,
-        topBar = { TopAppBar() },
-        bottomBar = { BottomBar() }
-    ) {paddingValues ->
-        // HomeScreen(modifier=Modifier.padding(paddingValues))
-        // Note: HomeScreen now requires AuthPreferences parameter
-        // This scaffold is primarily for preview/demo purposes
+        topBar = { 
+            TopAppBar(
+                username = username,
+                avatarResId = avatarResId,
+                onAvatarClick = onAvatarClick
+            ) 
+        },
+        bottomBar = { 
+            BottomBar(
+                onNavigateToHome = onNavigateToHome,
+                onNavigateToJourneys = onNavigateToJourneys,
+                onNavigateToFeedback = onNavigateToFeedback,
+                currentRoute = currentRoute
+            ) 
+        }
+    ) { paddingValues ->
+        content(paddingValues)
     }
 }
 
 @Composable
 fun TopAppBar(
     username: String = "Username", // Default username, will be dynamic
-    avatarResId: Int = R.drawable.avatar_1 // Default avatar, will be dynamic
+    avatarResId: Int = R.drawable.avatar_1, // Default avatar, will be dynamic
+    onAvatarClick: () -> Unit = {} // Navigation callback for avatar click
 ) {
     val lightGreen = Color(0xFFC1FF72)
     
@@ -69,7 +93,8 @@ fun TopAppBar(
                 contentDescription = "Profile",
                 modifier = Modifier
                     .size(60.dp)
-                    .clip(CircleShape),
+                    .clip(CircleShape)
+                    .clickable { onAvatarClick() },
                 contentScale = ContentScale.Crop
             )
 
@@ -80,14 +105,14 @@ fun TopAppBar(
                     text = "Welcome",
                     color = Color.White,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontSize = 16.sp
+                    fontSize = ResponsiveFontSizes.body()
                 )
                 Text(
                     text = "$username!",
                     color = lightGreen,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp
+                    fontSize = ResponsiveFontSizes.headingLarge()
                 )
             }
         }
@@ -95,20 +120,26 @@ fun TopAppBar(
 }
 
 @Composable
-fun BottomBar() {
+fun BottomBar(
+    onNavigateToHome: () -> Unit = {},
+    onNavigateToJourneys: () -> Unit = {},
+    onNavigateToFeedback: () -> Unit = {},
+    currentRoute: String = "home"
+) {
     NavigationBar(
         containerColor = Color(0xFF27272A),
         modifier = Modifier.height(90.dp)
     ) {
         NavigationBarItem(
             label={Text("Learn",style=MaterialTheme.typography.labelSmall,color=Color.White)},
-            selected=false,
-            onClick={ /* TODO */ },
+            selected=currentRoute.contains("explore") || currentRoute.contains("episodes"),
+            onClick=onNavigateToJourneys,
             icon={
                 Icon(
                     painter = painterResource(R.drawable.learn),
                     contentDescription = "Book",
-                    tint = Color.White
+                    tint = if (currentRoute.contains("explore") || currentRoute.contains("episodes")) 
+                        MaterialTheme.colorScheme.primary else Color.White
                 )
             },
             modifier=Modifier.padding(top=10.dp),
@@ -118,13 +149,13 @@ fun BottomBar() {
         )
         NavigationBarItem(
             label={Text("Home",style=MaterialTheme.typography.labelSmall,color=Color.White)},
-            selected=true,
-            onClick={ /* TODO */ },
+            selected=currentRoute == "home",
+            onClick=onNavigateToHome,
             icon={
                 Icon(
                     painter=painterResource(R.drawable.home_icon),
                     contentDescription="Home",
-                    tint=MaterialTheme.colorScheme.primary
+                    tint=if (currentRoute == "home") MaterialTheme.colorScheme.primary else Color.White
                 )
             },
             modifier=Modifier.padding(top=10.dp),
@@ -134,13 +165,14 @@ fun BottomBar() {
         )
         NavigationBarItem(
             label = {Text("Feedback",style=MaterialTheme.typography.labelSmall,color=Color.White)},
-            selected = false,
-            onClick = { /* TODO */ },
+            selected = currentRoute.contains("feedback"),
+            onClick = onNavigateToFeedback,
             icon = {
                 Icon(
                     painter = painterResource(R.drawable.feedback),
                     contentDescription = "Feedback",
-                    tint = Color.White
+                    tint = if (currentRoute.contains("feedback")) 
+                        MaterialTheme.colorScheme.primary else Color.White
                 )
             },
             modifier=Modifier.padding(top=10.dp),
@@ -154,5 +186,8 @@ fun BottomBar() {
 @Preview
 @Composable
 fun ScaffoldPreview() {
-    Scaffold()
+    Scaffold { paddingValues ->
+        // Preview content using paddingValues to avoid lint warning
+        Box(modifier = Modifier.padding(paddingValues))
+    }
 }

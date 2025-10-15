@@ -107,7 +107,11 @@ class AuthRepository @Inject constructor(
                 profession = profession
             )
             
+            println("AuthRepository: Calling createUserProfile with token: Bearer ${firebaseToken.take(50)}...")
+            println("AuthRepository: Request data: $request")
             val response = apiService.createUserProfile("Bearer $firebaseToken", request)
+            println("AuthRepository: Response code: ${response.code()}")
+            println("AuthRepository: Response message: ${response.message()}")
             if (response.isSuccessful && response.body() != null) {
                 val responseBody = response.body()!!
                 Logger.logAuth(
@@ -157,7 +161,7 @@ class AuthRepository @Inject constructor(
     /**
      * Get user profile from backend
      */
-    suspend fun getMyProfile(firebaseToken: String): Result<UserProfileResponse> {
+    suspend fun getMyProfile(firebaseToken: String): Result<UserProfile> {
         return try {
             val response = apiService.getMyProfile("Bearer $firebaseToken")
             if (response.isSuccessful && response.body() != null) {
@@ -175,20 +179,27 @@ class AuthRepository @Inject constructor(
      */
     suspend fun updateMyProfile(
         firebaseToken: String,
+        name: String?,
         displayName: String?,
+        dateOfBirth: String?,
+        gender: String?,
         profession: String?,
         avatarId: Int?
-    ): Result<UserProfileResponse> {
+    ): Result<UserProfile> {
         return try {
             val request = UpdateUserProfileRequest(
+                name = name,
                 display_name = displayName,
+                date_of_birth = dateOfBirth,
+                gender = gender,
                 profession = profession,
                 avatar_id = avatarId
             )
             
             val response = apiService.updateMyProfile("Bearer $firebaseToken", request)
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                val userProfileResponse = response.body()!!
+                Result.success(userProfileResponse.user)
             } else {
                 Result.failure(Exception("Profile update failed: ${response.message()}"))
             }
@@ -222,17 +233,10 @@ class AuthRepository @Inject constructor(
             val profileResult = getMyProfile(firebaseToken)
             
             if (profileResult.isSuccess) {
-                // Profile exists, sync local data with backend data
-                val backendProfile = profileResult.getOrNull()!!
-                authPrefs.apply {
-                    userName = backendProfile.name
-                    userDisplayName = backendProfile.display_name
-                    userDateOfBirth = backendProfile.date_of_birth
-                    userGender = backendProfile.gender
-                    userProfession = backendProfile.profession
-                    userAvatarId = backendProfile.avatar_id
-                    hasCompletedProfile = true
-                }
+                // Profile exists on backend - just mark as completed, DON'T overwrite local data
+                // This prevents overwriting fresh edits with stale backend data
+                println("AuthRepository: Profile exists on backend, marking as completed locally")
+                authPrefs.hasCompletedProfile = true
                 Result.success(true)
             } else {
                 // Profile doesn't exist on backend, check if we have local data to sync
@@ -253,6 +257,49 @@ class AuthRepository @Inject constructor(
                 }
             }
         } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Send login information to backend with provider ID
+     */
+    suspend fun sendLoginInfo(email: String): Result<LoginInfoResponse> {
+        Logger.logRepository("AuthRepository", "sendLoginInfo - Sending login info with provider ID")
+        
+        return try {
+            val request = LoginInfoRequest(
+                email = email,
+                provider = "wisme-mvpv1"  // Custom provider ID from backend team
+            )
+            
+            val response = apiService.loginInfo(request)
+            if (response.isSuccessful && response.body() != null) {
+                val responseBody = response.body()!!
+                Logger.logRepository(
+                    repository = "AuthRepository",
+                    operation = "sendLoginInfo",
+                    success = true,
+                    additionalData = mapOf("provider" to "wisme-mvpv1")
+                )
+                Result.success(responseBody)
+            } else {
+                val errorMessage = "Login info failed: ${response.code()} ${response.message()}"
+                Logger.logRepository(
+                    repository = "AuthRepository",
+                    operation = "sendLoginInfo",
+                    success = false,
+                    errorMessage = errorMessage
+                )
+                Result.failure(Exception(errorMessage))
+            }
+        } catch (e: Exception) {
+            Logger.logRepository(
+                repository = "AuthRepository",
+                operation = "sendLoginInfo",
+                success = false,
+                errorMessage = e.message ?: "Unknown error"
+            )
             Result.failure(e)
         }
     }

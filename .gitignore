@@ -20,6 +20,7 @@ google-services.json
 # Keystore files
 *.keystore
 *.jks
+keystore.properties
 
 # Log files
 *.log

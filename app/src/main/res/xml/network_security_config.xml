@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- Allow HTTP for demo/testing audio URLs -->
+        <domain includeSubdomains="true">www.soundjay.com</domain>
+        <domain includeSubdomains="true">www.learningcontainer.com</domain>
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">file-examples.com</domain>
+        <domain includeSubdomains="true">commondatastorage.googleapis.com</domain>
+        <domain includeSubdomains="true">soundhelix.com</domain>
+    </domain-config>
+    
+    <!-- Allow HTTPS for Aura backend -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">aura-backend-ok92.onrender.com</domain>
+        <domain includeSubdomains="true">onrender.com</domain>
+    </domain-config>
+</network-security-config>
