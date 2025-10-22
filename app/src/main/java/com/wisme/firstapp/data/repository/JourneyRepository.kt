@@ -9,6 +9,8 @@ import com.wisme.firstapp.domain.JourneysDataClass
 import com.wisme.firstapp.domain.EpisodeProgress
 import com.wisme.firstapp.data.local.AuthPreferences
 import com.wisme.firstapp.util.Logger
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -16,8 +18,35 @@ import javax.inject.Singleton
 class JourneyRepository @Inject constructor(
     private val apiService: AuraApiService,
     private val connectivityRepository: ConnectivityRepository,
-    private val authPrefs: AuthPreferences
+    private val authPrefs: AuthPreferences,
+    private val firebaseAuth: FirebaseAuth
 ) {
+    
+    /**
+     * Refresh Firebase token when 401 error occurs
+     */
+    private suspend fun refreshTokenAndRetry(): String? {
+        return try {
+            val currentUser = firebaseAuth.currentUser
+            if (currentUser != null) {
+                val freshToken = currentUser.getIdToken(true).await().token
+                if (freshToken != null) {
+                    authPrefs.firebaseToken = freshToken
+                    Logger.d("JourneyRepository: Token refreshed successfully", "JOURNEY_REPO")
+                    freshToken
+                } else {
+                    Logger.e("JourneyRepository: Failed to get fresh token - null returned", "JOURNEY_REPO")
+                    null
+                }
+            } else {
+                Logger.e("JourneyRepository: No current user for token refresh", "JOURNEY_REPO")
+                null
+            }
+        } catch (e: Exception) {
+            Logger.e("JourneyRepository: Token refresh failed - ${e.message}", "JOURNEY_REPO")
+            null
+        }
+    }
     
     /**
      * Fetch all available journeys from the Aura backend
@@ -87,6 +116,23 @@ class JourneyRepository @Inject constructor(
                 )
                 Result.success(journeys)
             } else {
+                // Handle 401 errors with automatic token refresh
+                if (response.code() == 401 && !useTestEndpoint) {
+                    Logger.d("JourneyRepository: 401 error - attempting token refresh", "JOURNEY_REPO")
+                    val refreshedToken = refreshTokenAndRetry()
+                    if (refreshedToken != null) {
+                        // Retry the request with refreshed token
+                        val retryResponse = apiService.getAllJourneys("Bearer $refreshedToken")
+                        if (retryResponse.isSuccessful && retryResponse.body()?.success == true) {
+                            val journeys = retryResponse.body()!!.journeys.map { journeyWrapper ->
+                                journeyWrapper.journey.toDomainModel()
+                            }
+                            Logger.d("JourneyRepository: Token refresh retry successful", "JOURNEY_REPO")
+                            return Result.success(journeys)
+                        }
+                    }
+                }
+                
                 val errorMessage = "Failed to fetch journeys: ${response.code()} ${response.message()}"
                 Logger.logJourney(
                     operation = "Fetch All Journeys",
@@ -138,6 +184,37 @@ class JourneyRepository @Inject constructor(
                 )
                 
                 Result.success(updatedJourney)
+            } else if (response.code() == 401) {
+                // Token expired, try to refresh
+                firebaseAuth.currentUser?.getIdToken(true)?.addOnSuccessListener { result ->
+                    // This will be handled in the retry mechanism
+                }
+                
+                try {
+                    val refreshedToken = firebaseAuth.currentUser?.getIdToken(true)?.result?.token
+                    if (refreshedToken != null) {
+                        val retryResponse = apiService.getJourneyById("Bearer $refreshedToken", journeyId)
+                        if (retryResponse.isSuccessful && retryResponse.body()?.success == true) {
+                            val journeyData = retryResponse.body()!!
+                            val journey = mapApiJourneyToDataClass(journeyData.journey)
+                            val episodes = journeyData.episodes.map { apiEpisode ->
+                                mapApiEpisodeToDataClass(apiEpisode)
+                            }
+                            
+                            val totalDuration = episodes.sumOf { it.durationMinutes }
+                            val updatedJourney = journey.copy(
+                                episodes = episodes,
+                                totalDurationMinutes = totalDuration
+                            )
+                            
+                            return Result.success(updatedJourney)
+                        }
+                    }
+                } catch (e: Exception) {
+                    // Token refresh failed, return original error
+                }
+                
+                Result.failure(Exception("Failed to fetch journey details: ${response.message()}"))
             } else {
                 Result.failure(Exception("Failed to fetch journey details: ${response.message()}"))
             }
@@ -157,6 +234,24 @@ class JourneyRepository @Inject constructor(
                     mapApiEpisodeToDataClass(apiEpisode)
                 }
                 Result.success(episodes)
+            } else if (response.code() == 401) {
+                // Token expired, try to refresh
+                try {
+                    val refreshedToken = firebaseAuth.currentUser?.getIdToken(true)?.result?.token
+                    if (refreshedToken != null) {
+                        val retryResponse = apiService.getJourneyEpisodes("Bearer $refreshedToken", journeyId)
+                        if (retryResponse.isSuccessful && retryResponse.body()?.success == true) {
+                            val episodes = retryResponse.body()!!.episodes.map { apiEpisode ->
+                                mapApiEpisodeToDataClass(apiEpisode)
+                            }
+                            return Result.success(episodes)
+                        }
+                    }
+                } catch (e: Exception) {
+                    // Token refresh failed, return original error
+                }
+                
+                Result.failure(Exception("Failed to fetch episodes: ${response.message()}"))
             } else {
                 Result.failure(Exception("Failed to fetch episodes: ${response.message()}"))
             }
@@ -173,6 +268,21 @@ class JourneyRepository @Inject constructor(
             val response = apiService.getEpisodeAudioDuration("Bearer $token", episodeId)
             if (response.isSuccessful && response.body()?.success == true) {
                 Result.success(response.body()!!.durationMinutes)
+            } else if (response.code() == 401) {
+                // Token expired, try to refresh
+                try {
+                    val refreshedToken = firebaseAuth.currentUser?.getIdToken(true)?.result?.token
+                    if (refreshedToken != null) {
+                        val retryResponse = apiService.getEpisodeAudioDuration("Bearer $refreshedToken", episodeId)
+                        if (retryResponse.isSuccessful && retryResponse.body()?.success == true) {
+                            return Result.success(retryResponse.body()!!.durationMinutes)
+                        }
+                    }
+                } catch (e: Exception) {
+                    // Token refresh failed, return original error
+                }
+                
+                Result.failure(Exception("Failed to fetch audio duration: ${response.message()}"))
             } else {
                 Result.failure(Exception("Failed to fetch audio duration: ${response.message()}"))
             }
@@ -258,6 +368,55 @@ class JourneyRepository @Inject constructor(
                 )
                 
                 Result.success(Pair(audioUrl, progress))
+            } else if (!useTestEndpoint && response.code() == 401) {
+                // Token expired, try to refresh
+                try {
+                    val refreshedToken = firebaseAuth.currentUser?.getIdToken(true)?.result?.token
+                    if (refreshedToken != null) {
+                        val retryResponse = apiService.startEpisode("Bearer $refreshedToken", journeyId, episodeId)
+                        if (retryResponse.isSuccessful && retryResponse.body()?.success == true) {
+                            val body = retryResponse.body()!!
+                            val rawAudioUrl = body.audio_url ?: ""
+                            
+                            // Convert relative path to full URL
+                            val audioUrl = if (rawAudioUrl.isNotEmpty() && !rawAudioUrl.startsWith("http")) {
+                                "https://aura-backend-ok92.onrender.com/$rawAudioUrl"
+                            } else {
+                                rawAudioUrl
+                            }
+                            
+                            // Create progress object
+                            val progress = EpisodeProgress(
+                                progressPercentage = 0f,
+                                playPositionSeconds = 0L,
+                                status = EpisodeProgress.STATUS_IN_PROGRESS,
+                                lastUpdated = System.currentTimeMillis()
+                            )
+                            
+                            // Store progress locally
+                            authPrefs.setEpisodeProgress(journeyId, episodeId, progress)
+                            
+                            Logger.logJourney(
+                                operation = "Start Episode",
+                                journeyName = journeyId,
+                                success = true
+                            )
+                            
+                            return Result.success(Pair(audioUrl, progress))
+                        }
+                    }
+                } catch (e: Exception) {
+                    // Token refresh failed, return original error
+                }
+                
+                val errorMessage = "Failed to start episode: ${response.code()} ${response.message()}"
+                Logger.logJourney(
+                    operation = "Start Episode",
+                    journeyName = journeyId,
+                    success = false,
+                    errorMessage = errorMessage
+                )
+                Result.failure(Exception(errorMessage))
             } else {
                 val errorMessage = "Failed to start episode: ${response.code()} ${response.message()}"
                 Logger.logJourney(
@@ -302,6 +461,25 @@ class JourneyRepository @Inject constructor(
                 val audioUrl = response.body()!!.audio_url
                 println("JourneyRepository: Got streaming URL: $audioUrl")
                 Result.success(audioUrl)
+            } else if (!useTestEndpoint && response.code() == 401) {
+                // Token expired, try to refresh
+                try {
+                    val refreshedToken = firebaseAuth.currentUser?.getIdToken(true)?.result?.token
+                    if (refreshedToken != null) {
+                        val retryResponse = apiService.startEpisode("Bearer $refreshedToken", journeyId, episodeId)
+                        if (retryResponse.isSuccessful && retryResponse.body()?.success == true) {
+                            val audioUrl = retryResponse.body()!!.audio_url
+                            println("JourneyRepository: Got streaming URL after token refresh: $audioUrl")
+                            return Result.success(audioUrl)
+                        }
+                    }
+                } catch (e: Exception) {
+                    // Token refresh failed, return original error
+                }
+                
+                val errorMessage = "Failed to get streaming URL: ${response.code()} ${response.message()}"
+                println("JourneyRepository: $errorMessage")
+                Result.failure(Exception(errorMessage))
             } else {
                 val errorMessage = "Failed to get streaming URL: ${response.code()} ${response.message()}"
                 println("JourneyRepository: $errorMessage")
@@ -367,8 +545,14 @@ class JourneyRepository @Inject constructor(
                 apiService.updateEpisodeProgressTest(journeyId, episodeId, requestBody)
             } else {
                 if (token.isEmpty()) {
-                    // Return success since we stored locally
-                    return Result.success(progress)
+                    // CRITICAL: Return failure when no token available - backend sync impossible
+                    Logger.logJourney(
+                        operation = "Update Progress",
+                        journeyName = journeyId,
+                        success = false,
+                        errorMessage = "No authentication token available"
+                    )
+                    return Result.failure(Exception("Backend sync failed: No authentication token. Progress saved locally but not synced to server."))
                 }
                 apiService.updateEpisodeProgress("Bearer $token", journeyId, episodeId, requestBody)
             }
@@ -381,14 +565,35 @@ class JourneyRepository @Inject constructor(
                 )
                 Result.success(progress)
             } else {
+                // Handle 401 errors with automatic token refresh
+                if (response.code() == 401 && !useTestEndpoint) {
+                    Logger.d("JourneyRepository: 401 error on progress update - attempting token refresh", "JOURNEY_REPO")
+                    val refreshedToken = refreshTokenAndRetry()
+                    if (refreshedToken != null) {
+                        // Retry the request with refreshed token
+                        val retryResponse = apiService.updateEpisodeProgress("Bearer $refreshedToken", journeyId, episodeId, requestBody)
+                        if (retryResponse.isSuccessful) {
+                            Logger.logJourney(
+                                operation = "Update Progress",
+                                journeyName = journeyId,
+                                success = true,
+                                errorMessage = "Token refresh retry successful"
+                            )
+                            return Result.success(progress)
+                        }
+                    }
+                }
+                
                 Logger.logJourney(
                     operation = "Update Progress",
                     journeyName = journeyId,
                     success = false,
                     errorMessage = "Backend sync failed: ${response.code()}"
                 )
-                // Still return success since local storage succeeded
-                Result.success(progress)
+                
+                // CRITICAL: Return failure when backend sync fails!
+                // Local storage succeeded but backend sync failed = partial failure
+                Result.failure(Exception("Backend sync failed: HTTP ${response.code()}. Progress saved locally but not synced to server."))
             }
         } catch (e: Exception) {
             Logger.logJourney(
@@ -397,8 +602,10 @@ class JourneyRepository @Inject constructor(
                 success = false,
                 errorMessage = "Exception: ${e.message}"
             )
-            // Still return success since local storage succeeded
-            Result.success(progress)
+            
+            // CRITICAL: Return failure when exception occurs!
+            // Local storage may have succeeded but we can't guarantee backend sync
+            Result.failure(Exception("Progress sync failed: ${e.message}. Progress may be saved locally but backend sync uncertain."))
         }
     }
     
@@ -439,6 +646,89 @@ class JourneyRepository @Inject constructor(
         )
     }
     
+    /**
+     * Record listen event analytics (including completion) to backend
+     */
+    suspend fun recordListenEvent(
+        token: String,
+        episodeId: String,
+        eventType: String,
+        timestamp: String,
+        playPositionSeconds: Int,
+        sessionId: String?
+    ): Result<Unit> {
+        return try {
+            val request = com.wisme.firstapp.data.api.ListenAnalyticsRequest(
+                event_type = eventType,
+                timestamp = timestamp,
+                play_position_seconds = playPositionSeconds,
+                session_id = sessionId
+            )
+            
+            val response = apiService.recordListenEvent(episodeId, request)
+            
+            if (response.isSuccessful) {
+                Logger.logRepository(
+                    repository = "JourneyRepository",
+                    operation = "recordListenEvent",
+                    additionalData = mapOf(
+                        "episodeId" to episodeId,
+                        "eventType" to eventType,
+                        "success" to true
+                    )
+                )
+                Result.success(Unit)
+            } else {
+                // Handle 401 errors with automatic token refresh
+                if (response.code() == 401) {
+                    Logger.d("JourneyRepository: 401 error on listen event - attempting token refresh", "JOURNEY_REPO")
+                    val refreshedToken = refreshTokenAndRetry()
+                    if (refreshedToken != null) {
+                        // Retry the request with refreshed token
+                        val retryResponse = apiService.recordListenEvent(episodeId, request)
+                        if (retryResponse.isSuccessful) {
+                            Logger.logRepository(
+                                repository = "JourneyRepository",
+                                operation = "recordListenEvent",
+                                additionalData = mapOf(
+                                    "episodeId" to episodeId,
+                                    "eventType" to eventType,
+                                    "success" to true,
+                                    "tokenRefreshRetry" to true
+                                )
+                            )
+                            return Result.success(Unit)
+                        }
+                    }
+                }
+                
+                Logger.logRepository(
+                    repository = "JourneyRepository",
+                    operation = "recordListenEvent",
+                    additionalData = mapOf(
+                        "episodeId" to episodeId,
+                        "eventType" to eventType,
+                        "success" to false,
+                        "error" to "HTTP ${response.code()}"
+                    )
+                )
+                Result.failure(Exception("Failed to record listen event: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Logger.logRepository(
+                repository = "JourneyRepository",
+                operation = "recordListenEvent",
+                additionalData = mapOf(
+                    "episodeId" to episodeId,
+                    "eventType" to eventType,
+                    "success" to false,
+                    "error" to e.message
+                )
+            )
+            Result.failure(e)
+        }
+    }
+
     /**
      * Map API episode model to domain data class
      */

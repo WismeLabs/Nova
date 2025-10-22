@@ -10,6 +10,10 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,6 +32,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.wisme.firstapp.ui.utils.ResponsiveTextStyles
 import com.wisme.firstapp.ui.utils.ResponsiveFontSizes
 import com.wisme.firstapp.ui.utils.ResponsiveSpacing
@@ -46,6 +51,7 @@ fun PlayerScreen(
     episode: EpisodeDataClass,
     playerViewModel: PlayerViewModel,
     journeyViewModel: com.wisme.firstapp.viewmodel.JourneyViewModel,
+    feedbackViewModel: com.wisme.firstapp.viewmodel.FeedbackViewModel = hiltViewModel(),
     authPrefs: AuthPreferences,
     onBackPress: () -> Unit = {},
     onProfileClick: () -> Unit = {}
@@ -66,21 +72,36 @@ fun PlayerScreen(
     val progressPercentage by playerViewModel.progressPercentage.collectAsStateWithLifecycle()
     val episodeProgress by playerViewModel.episodeProgress.collectAsStateWithLifecycle()
     
-    // Local state for episode management with safety checks
-    var currentEpisodeIndex by remember { 
-        mutableIntStateOf(
-            if (journey.episodes.isNotEmpty()) {
-                journey.episodes.indexOfFirst { it.episodeNumber == episode.episodeNumber }.takeIf { it >= 0 } ?: 0
-            } else {
-                0
-            }
-        ) 
+    // Collect error state
+    val errorMessage by playerViewModel.errorMessage.collectAsStateWithLifecycle()
+    val hasAudioError by playerViewModel.hasAudioError.collectAsStateWithLifecycle()
+    
+    // State managed by ViewModel for consistency
+    val currentEpisodeIndex by playerViewModel.currentEpisodeIndex.collectAsStateWithLifecycle()
+    val episodeChangeKey by playerViewModel.episodeChangeKey.collectAsStateWithLifecycle()
+    val playbackSpeed by playerViewModel.playbackSpeed.collectAsStateWithLifecycle()
+    
+    // CONFIGURATION CHANGE SURVIVAL: Derive currentEpisode from ViewModel state
+    val currentEpisode = if (journey.episodes.isNotEmpty() && currentEpisodeIndex < journey.episodes.size) {
+        journey.episodes[currentEpisodeIndex]
+    } else {
+        episode // fallback to initial episode
     }
-    var currentEpisode by remember { mutableStateOf(episode) }
-    var playbackSpeed by remember { mutableFloatStateOf(1f) }
+    
+    // Initialize episode index on first render
+    LaunchedEffect(journey.episodes, episode.episodeNumber) {
+        val initialIndex = if (journey.episodes.isNotEmpty()) {
+            journey.episodes.indexOfFirst { it.episodeNumber == episode.episodeNumber }.takeIf { it >= 0 } ?: 0
+        } else {
+            0
+        }
+        playerViewModel.setCurrentEpisodeIndex(initialIndex)
+    }
+    
+    // episodeChangeKey now managed by ViewModel for configuration change survival
     
     // Set current episode in PlayerViewModel for progress tracking and start episode
-    LaunchedEffect(journey.JourneyName, currentEpisode.episodeNumber) {
+    LaunchedEffect(journey.JourneyName, currentEpisode.episodeNumber, episodeChangeKey) {
         try {
             val journeyId = journey.journeyId // Use database ID instead of display name
             val episodeId = "episode_${currentEpisode.episodeNumber}"
@@ -89,6 +110,73 @@ fun PlayerScreen(
             println("PlayerScreen: Journey Database ID: $journeyId")
             println("PlayerScreen: Episode audioUrl: ${currentEpisode.audioUrl}")
             println("PlayerScreen: Episode duration: ${currentEpisode.durationMinutes} minutes")
+            
+            // Set up episode completion callback
+            playerViewModel.setEpisodeCompletionCallback { completedEpisodeId ->
+                println("PlayerScreen: Episode completed - $completedEpisodeId")
+                // Trigger feedback system
+                feedbackViewModel.onEpisodeCompleted(completedEpisodeId)
+                
+                // Check if this completes the entire journey
+                val totalEpisodes = journey.episodes.size
+                var completedCount = 0
+                
+                journey.episodes.forEach { ep ->
+                    val epId = "episode_${ep.episodeNumber}"
+                    if (authPrefs.isEpisodeCompleted(journey.JourneyName, epId)) {
+                        completedCount++
+                    }
+                }
+                
+                println("PlayerScreen: Journey completion check - $completedCount/$totalEpisodes episodes completed")
+                
+                // If all episodes are completed, mark journey as completed
+                if (completedCount >= totalEpisodes) {
+                    authPrefs.markJourneyCompleted(journey.JourneyName)
+                    feedbackViewModel.onJourneyCompleted(journey.JourneyName)
+                    println("PlayerScreen: *** JOURNEY COMPLETED - ${journey.JourneyName} ***")
+                }
+                
+                // Auto-advance to next episode if available
+                val nextEpisodeNumber = currentEpisode.episodeNumber + 1
+                val nextEpisode = journey.episodes.find { it.episodeNumber == nextEpisodeNumber }
+                if (nextEpisode != null) {
+                    println("PlayerScreen: Auto-advancing to episode $nextEpisodeNumber")
+                    println("PlayerScreen: Current episode index before: $currentEpisodeIndex")
+                    
+                    // CONFIGURATION CHANGE SURVIVAL: Update episode index in ViewModel
+                    val newIndex = journey.episodes.indexOfFirst { it.episodeNumber == nextEpisodeNumber }
+                        .takeIf { it >= 0 } ?: currentEpisodeIndex
+                    playerViewModel.setCurrentEpisodeIndex(newIndex)
+                    
+                    // Force recomposition by triggering episode change in ViewModel
+                    playerViewModel.triggerEpisodeChange()
+                    
+                    println("PlayerScreen: Current episode index after: $currentEpisodeIndex")
+                    println("PlayerScreen: Episode change key updated to: $episodeChangeKey")
+                    
+                    // Set up the new episode in PlayerViewModel
+                    val newJourneyId = journey.journeyId
+                    val newEpisodeId = "episode_${nextEpisode.episodeNumber}"
+                    
+                    playerViewModel.setCurrentEpisode(
+                        journeyId = newJourneyId,
+                        episodeId = newEpisodeId,
+                        audioUrl = nextEpisode.audioUrl,
+                        durationMinutes = nextEpisode.durationMinutes
+                    )
+                    
+                    // Start the new episode
+                    journeyViewModel.startEpisode(newJourneyId, newEpisodeId)
+                    
+                    // Update continue learning state immediately
+                    journeyViewModel.refreshContinueLearning()
+                    
+                    println("PlayerScreen: *** AUTO-ADVANCE COMPLETED - New episode: ${nextEpisode.title} at index $currentEpisodeIndex ***")
+                } else {
+                    println("PlayerScreen: No more episodes to auto-advance to")
+                }
+            }
             
             playerViewModel.setCurrentEpisode(
                 journeyId = journeyId, 
@@ -253,21 +341,18 @@ fun PlayerScreen(
             }
         },
         onSpeedChange = { speed -> 
-            playbackSpeed = speed
-            // In a real app, you'd set playback speed on the player
-            // playerViewModel.setPlaybackSpeed(speed)
+            playerViewModel.setPlaybackSpeed(speed)
         },
         onEpisodeSelect = { index ->
             // Only allow episode switching if it's a different episode
             if (index in journey.episodes.indices && index != currentEpisodeIndex) {
-                // Save progress for current episode before switching
-                playerViewModel.forceSyncProgress()
+                // Progress saving is now handled automatically in setCurrentEpisode
                 
                 // Switch to new episode
-                currentEpisodeIndex = index
+                playerViewModel.setCurrentEpisodeIndex(index)
                 val newEpisode = journey.episodes.getOrNull(index)
                 if (newEpisode != null) {
-                    currentEpisode = newEpisode
+                    // currentEpisode is now derived from ViewModel state - no manual assignment needed
                     
                     // Set new episode in PlayerViewModel for progress tracking
                     val journeyId = journey.journeyId // Use database ID instead of display name
@@ -421,6 +506,52 @@ fun PlayerScreenContent(
         ) {
             Spacer(modifier = Modifier.height(32.dp))
             
+            // Error message display
+            if (hasAudioError && !errorMessage.isNullOrBlank()) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFD32F2F).copy(alpha = 0.1f)
+                    ),
+                    border = BorderStroke(1.dp, Color(0xFFD32F2F))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "Error",
+                            tint = Color(0xFFD32F2F),
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = errorMessage!!,
+                            color = Color(0xFFD32F2F),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(
+                            onClick = {
+                                playerViewModel.clearError()
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Dismiss",
+                                tint = Color(0xFFD32F2F),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+            }
+            
             // Cover Image - Journey-specific image
             val journeyImageResource = remember(journey.JourneyName) {
                 when (journey.JourneyName.lowercase()) {
@@ -533,7 +664,7 @@ fun PlayerScreenContent(
                 onSpeedChange = onSpeedChange
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Episode Navigation
             Text(
@@ -544,12 +675,14 @@ fun PlayerScreenContent(
                 fontWeight = FontWeight.Medium
             )
             
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             
             EpisodeCarousel(
                 episodes = journey.episodes,
                 currentEpisodeIndex = currentEpisodeIndex,
-                onEpisodeSelect = onEpisodeSelect
+                onEpisodeSelect = onEpisodeSelect,
+                journeyId = journey.JourneyName,
+                authPrefs = authPrefs
             )
         }
     }
@@ -613,6 +746,8 @@ fun PlaybackSpeedSelector(
 fun EpisodeCarousel(
     episodes: List<EpisodeDataClass>,
     currentEpisodeIndex: Int,
+    journeyId: String,
+    authPrefs: AuthPreferences,
     onEpisodeSelect: (Int) -> Unit
 ) {
     val listState = rememberLazyListState()
@@ -631,9 +766,14 @@ fun EpisodeCarousel(
         contentPadding = PaddingValues(horizontal = 14.dp)
     ) {
         itemsIndexed(episodes) { index, episode ->
+            // SINGLE SOURCE OF TRUTH: Use persistent completion flag only
+            val episodeId = "episode_${episode.episodeNumber}"
+            val isCompleted = authPrefs.isEpisodeCompleted(journeyId, episodeId)
+            
             EpisodeCard(
                 episode = episode,
                 isCurrentPlaying = index == currentEpisodeIndex,
+                isCompleted = isCompleted,
                 onClick = { onEpisodeSelect(index) }
             )
         }
@@ -644,18 +784,24 @@ fun EpisodeCarousel(
 fun EpisodeCard(
     episode: EpisodeDataClass,
     isCurrentPlaying: Boolean,
+    isCompleted: Boolean = false,
     onClick: () -> Unit
 ) {
     val accentColor = Color(0xFFC1FF72)
-    val cardBackground = if (isCurrentPlaying) {
-        Brush.linearGradient(
+    val cardBackground = when {
+        isCompleted -> Brush.linearGradient(
+            colors = listOf(
+                accentColor.copy(alpha = 0.5f),
+                accentColor.copy(alpha = 0.2f)
+            )
+        )
+        isCurrentPlaying -> Brush.linearGradient(
             colors = listOf(
                 accentColor.copy(alpha = 0.3f),
                 accentColor.copy(alpha = 0.1f)
             )
         )
-    } else {
-        Brush.linearGradient(
+        else -> Brush.linearGradient(
             colors = listOf(
                 Color(0xFF2A2A2A),
                 Color(0xFF1A1A1A)

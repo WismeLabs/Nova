@@ -3,6 +3,7 @@ package com.wisme.firstapp.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.SavedStateHandle
 import com.wisme.firstapp.data.repository.FeedbackRepository
 import com.wisme.firstapp.data.repository.FeedbackResult
 import com.wisme.firstapp.data.repository.FeedbackQuestion
@@ -10,6 +11,8 @@ import com.wisme.firstapp.data.repository.FeedbackResponse
 import com.wisme.firstapp.ui.feedback.EpisodeFeedbackData
 import com.wisme.firstapp.ui.feedback.JourneyFeedbackData
 import com.wisme.firstapp.ui.feedback.GeneralFeedbackData
+import com.wisme.firstapp.data.local.AuthPreferences
+import com.wisme.firstapp.domain.EpisodeProgress
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,7 +29,9 @@ data class FeedbackState(
 
 @HiltViewModel
 class FeedbackViewModel @Inject constructor(
-    private val feedbackRepository: FeedbackRepository
+    private val feedbackRepository: FeedbackRepository,
+    private val authPrefs: AuthPreferences,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     
     companion object {
@@ -109,8 +114,117 @@ class FeedbackViewModel @Inject constructor(
     
     private fun loadFeedbackStates() {
         viewModelScope.launch {
+            // CRITICAL: Load persistent feedback status first
+            loadPersistedFeedbackStatus()
+            
+            // Check local database for completed episodes to unlock feedback
+            checkCompletedEpisodesInDatabase()
+            
             // Load submitted feedback to determine visibility
             loadSubmittedFeedbackHistory()
+        }
+    }
+    
+    /**
+     * CRITICAL: Load persisted feedback submission status to prevent re-showing
+     */
+    private fun loadPersistedFeedbackStatus() {
+        try {
+            // Load episode feedback submissions
+            val submittedEpisodes = authPrefs.getSubmittedEpisodeFeedbacks()
+            _submittedEpisodeFeedbacks.value = submittedEpisodes
+            
+            // Load journey feedback submissions  
+            val submittedJourneys = authPrefs.getSubmittedJourneyFeedbacks()
+            _submittedJourneyFeedbacks.value = submittedJourneys
+            
+            // Load general feedback submission
+            val hasSubmittedGeneral = authPrefs.isGeneralFeedbackSubmitted()
+            _hasSubmittedGeneralFeedback.value = hasSubmittedGeneral
+            
+            Log.d(TAG, "Loaded persistent feedback status - Episodes: ${submittedEpisodes.size}, Journeys: ${submittedJourneys.size}, General: $hasSubmittedGeneral")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error loading persistent feedback status: ${e.message}")
+        }
+    }
+    
+    /**
+     * Check local database for any completed episodes to unlock feedback
+     */
+    private fun checkCompletedEpisodesInDatabase() {
+        try {
+            // Get persistently completed episodes from AuthPreferences
+            val completedEpisodeKeys = authPrefs.getCompletedEpisodes()
+            val completedJourneyKeys = authPrefs.getCompletedJourneys()
+            
+            Log.d(TAG, "Found ${completedEpisodeKeys.size} persistently completed episodes")
+            Log.d(TAG, "Found ${completedJourneyKeys.size} persistently completed journeys")
+            
+            // Also check episode progress for episodes that reached completion threshold
+            val allProgress = authPrefs.getAllEpisodeProgress()
+            val progressCompletedEpisodes = allProgress.filter { (_, progress) ->
+                progress.status == EpisodeProgress.STATUS_COMPLETED || 
+                progress.isCompleted
+            }
+            
+            Log.d(TAG, "Found ${progressCompletedEpisodes.size} episodes completed by progress")
+            
+            // Combine both completion sources
+            val allCompletedEpisodes = mutableSetOf<String>()
+            
+            // Add persistently marked episodes
+            completedEpisodeKeys.forEach { key ->
+                val episodeId = key.substringAfterLast("_")
+                allCompletedEpisodes.add(episodeId)
+            }
+            
+            // Add progress-based completed episodes
+            progressCompletedEpisodes.forEach { (key, _) ->
+                val episodeId = key.substringAfterLast("_")
+                allCompletedEpisodes.add(episodeId)
+            }
+            
+            Log.d(TAG, "Total unique completed episodes: ${allCompletedEpisodes.size}")
+            
+            if (allCompletedEpisodes.isNotEmpty()) {
+                // Mark that user has completed at least one episode
+                _hasCompletedEpisode.value = true
+                
+                // Add completed episodes to pending feedback list (if not already submitted)
+                val currentPending = _pendingEpisodeFeedback.value.toMutableList()
+                val currentSubmitted = _submittedEpisodeFeedbacks.value
+                
+                allCompletedEpisodes.forEach { episodeId ->
+                    if (!currentPending.contains(episodeId) && !currentSubmitted.contains(episodeId)) {
+                        currentPending.add(episodeId)
+                        Log.d(TAG, "Added episode $episodeId to pending feedback")
+                    }
+                }
+                
+                _pendingEpisodeFeedback.value = currentPending
+                Log.d(TAG, "Total pending episode feedbacks: ${currentPending.size}")
+            }
+            
+            // Check for completed journeys
+            if (completedJourneyKeys.isNotEmpty()) {
+                _hasCompletedJourney.value = true
+                
+                val currentPendingJourneys = _pendingJourneyFeedback.value.toMutableList()
+                val currentSubmittedJourneys = _submittedJourneyFeedbacks.value
+                
+                completedJourneyKeys.forEach { journeyId ->
+                    if (!currentPendingJourneys.contains(journeyId) && !currentSubmittedJourneys.contains(journeyId)) {
+                        currentPendingJourneys.add(journeyId)
+                        Log.d(TAG, "Added journey $journeyId to pending feedback")
+                    }
+                }
+                
+                _pendingJourneyFeedback.value = currentPendingJourneys
+                Log.d(TAG, "Total pending journey feedbacks: ${currentPendingJourneys.size}")
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking completed episodes: ${e.message}")
         }
     }
     
@@ -306,7 +420,10 @@ class FeedbackViewModel @Inject constructor(
                 clarity = feedbackData.clarity
             )) {
                 is FeedbackResult.Success -> {
-                    // Add to submitted feedbacks list
+                    // CRITICAL: Persist feedback submission status permanently
+                    authPrefs.markEpisodeFeedbackSubmitted(episodeId)
+                    
+                    // Update memory state for immediate UI response
                     val currentSubmitted = _submittedEpisodeFeedbacks.value.toMutableSet()
                     currentSubmitted.add(episodeId)
                     _submittedEpisodeFeedbacks.value = currentSubmitted
@@ -324,17 +441,83 @@ class FeedbackViewModel @Inject constructor(
                     Log.d(TAG, "Successfully submitted episode feedback for $episodeId")
                 }
                 is FeedbackResult.Error -> {
+                    // Add failed feedback to retry queue
+                    val feedbackJson = "{\"episodeId\":\"$episodeId\",\"enjoyment\":${feedbackData.enjoyment},\"clarity\":${feedbackData.clarity}}"
+                    authPrefs.addPendingFeedbackSubmission(feedbackJson)
+                    
                     _episodeFeedbackState.value = _episodeFeedbackState.value.copy(
                         isLoading = false,
                         error = result.message
                     )
-                    Log.e(TAG, "Failed to submit episode feedback: ${result.message}")
+                    Log.e(TAG, "Failed to submit episode feedback, added to retry queue: ${result.message}")
                 }
                 else -> {}
             }
         }
     }
     
+    /**
+     * Process pending feedback submissions when network returns
+     */
+    fun processPendingFeedbackSubmissions() {
+        viewModelScope.launch {
+            val pendingSubmissions = authPrefs.getPendingFeedbackSubmissions()
+            for (submissionItem in pendingSubmissions) {
+                try {
+                    val parts = submissionItem.split("|")
+                    if (parts.size >= 2) {
+                        val feedbackJson = parts[0]
+                        // Parse the JSON feedback data
+                        val feedbackData = parseFeedbackJson(feedbackJson)
+                        if (feedbackData != null) {
+                            val result = feedbackRepository.submitEpisodeFeedback(
+                                episodeId = feedbackData.episodeId,
+                                enjoyment = feedbackData.enjoyment,
+                                clarity = feedbackData.clarity
+                            )
+                            
+                            if (result is FeedbackResult.Success) {
+                                // Successfully submitted, remove from queue
+                                authPrefs.removePendingFeedbackSubmission(feedbackJson)
+                                // Mark as submitted permanently
+                                authPrefs.markEpisodeFeedbackSubmitted(feedbackData.episodeId)
+                                Log.d(TAG, "Pending feedback submission successful: ${feedbackData.episodeId}")
+                            } else {
+                                Log.d(TAG, "Pending feedback submission still failing: ${feedbackData.episodeId}")
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error processing pending feedback submission: ${e.message}")
+                }
+            }
+        }
+    }
+    
+    /**
+     * Helper to parse feedback JSON
+     */
+    private fun parseFeedbackJson(json: String): PendingFeedbackData? {
+        return try {
+            // Simple JSON parsing for episodeId, enjoyment, clarity
+            val episodeId = json.substringAfter("\"episodeId\":\"").substringBefore("\"")
+            val enjoyment = json.substringAfter("\"enjoyment\":").substringBefore(",").toInt()
+            val clarity = json.substringAfter("\"clarity\":").substringBefore("}").toInt()
+            PendingFeedbackData(episodeId, enjoyment, clarity)
+        } catch (e: Exception) {
+            null
+        }
+    }
+    
+    /**
+     * Data class for pending feedback
+     */
+    private data class PendingFeedbackData(
+        val episodeId: String,
+        val enjoyment: Int,
+        val clarity: Int
+    )
+
     /**
      * Load feedback questions for journey feedback
      */
@@ -578,6 +761,9 @@ class FeedbackViewModel @Inject constructor(
      */
     fun refreshFeedbackStates() {
         viewModelScope.launch {
+            // Check for newly completed episodes first
+            checkCompletedEpisodesInDatabase()
+            // Then load submitted feedback history
             loadSubmittedFeedbackHistory()
         }
     }

@@ -2,6 +2,7 @@ package com.wisme.firstapp.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.SavedStateHandle
 import com.wisme.firstapp.data.repository.JourneyRepository
 import com.wisme.firstapp.data.repository.ConnectivityRepository
 import com.wisme.firstapp.data.local.AuthPreferences
@@ -20,7 +21,8 @@ import javax.inject.Inject
 class JourneyViewModel @Inject constructor(
     private val journeyRepository: JourneyRepository,
     private val authPrefs: AuthPreferences,
-    private val connectivityRepository: ConnectivityRepository
+    private val connectivityRepository: ConnectivityRepository,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val _journeys = MutableStateFlow<List<JourneysDataClass>>(emptyList())
@@ -163,6 +165,9 @@ class JourneyViewModel @Inject constructor(
                     success = false,
                     errorMessage = "Exception: ${e.message}"
                 )
+                
+                // Show user-visible error
+                _errorMessage.value = "Failed to load your learning progress. Please try again."
             }
         }
     }
@@ -219,6 +224,9 @@ class JourneyViewModel @Inject constructor(
                     success = false,
                     errorMessage = "Exception: ${e.message}"
                 )
+                
+                // Show user-visible error  
+                _errorMessage.value = "Failed to start episode. Please try again."
             }
         }
     }
@@ -281,6 +289,9 @@ class JourneyViewModel @Inject constructor(
                     success = false,
                     errorMessage = "Exception: ${e.message}"
                 )
+                
+                // Show user-visible error
+                _errorMessage.value = "Failed to save your progress. Please check your connection."
             }
         }
     }
