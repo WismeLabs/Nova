@@ -60,8 +60,8 @@ class FeedbackViewModel @Inject constructor(
     private val _showJourneyFeedbackModal = MutableStateFlow(false)
     val showJourneyFeedbackModal: StateFlow<Boolean> = _showJourneyFeedbackModal.asStateFlow()
     
-    // Track completed episodes count to determine first episode
-    private val _completedEpisodesCount = MutableStateFlow(0)
+    // Track completed episodes count to determine first episode - persist across sessions
+    private val _completedEpisodesCount = MutableStateFlow(savedStateHandle.get<Int>("completed_episodes_count") ?: 0)
     val completedEpisodesCount: StateFlow<Int> = _completedEpisodesCount.asStateFlow()
     
     // Track current episode being processed for feedback
@@ -110,6 +110,13 @@ class FeedbackViewModel @Inject constructor(
     
     init {
         loadFeedbackStates()
+        
+        // Save completed episodes count to survive process death
+        viewModelScope.launch {
+            _completedEpisodesCount.collect { count ->
+                savedStateHandle["completed_episodes_count"] = count
+            }
+        }
     }
     
     private fun loadFeedbackStates() {
@@ -265,14 +272,39 @@ class FeedbackViewModel @Inject constructor(
      */
     fun onEpisodeCompleted(episodeId: String) {
         viewModelScope.launch {
-            // Increment completed episodes count
-            val currentCount = _completedEpisodesCount.value
-            _completedEpisodesCount.value = currentCount + 1
-            
             _hasCompletedEpisode.value = true
             
+            // Check if this is truly the first episode completed by checking actual completion status
+            val completedEpisodesKeys = authPrefs.getCompletedEpisodes()
+            val allProgress = authPrefs.getAllEpisodeProgress()
+            val progressCompletedEpisodes = allProgress.filter { (_, progress) ->
+                progress.status == EpisodeProgress.STATUS_COMPLETED || progress.isCompleted
+            }
+            
+            // Total unique completed episodes
+            val allCompletedEpisodes = mutableSetOf<String>()
+            completedEpisodesKeys.forEach { key ->
+                // Extract episode ID from "journeyId_episodeId" format
+                val epId = key.substringAfterLast("_")
+                // Check if it's just a number, if so, add "episode_" prefix
+                val normalizedEpId = if (epId.matches(Regex("\\d+"))) "episode_$epId" else epId
+                allCompletedEpisodes.add(normalizedEpId)
+            }
+            progressCompletedEpisodes.forEach { (key, _) ->
+                // Extract episode ID from progress key format
+                val epId = key.substringAfterLast("_")
+                // Check if it's just a number, if so, add "episode_" prefix  
+                val normalizedEpId = if (epId.matches(Regex("\\d+"))) "episode_$epId" else epId
+                allCompletedEpisodes.add(normalizedEpId)
+            }
+            
+            // Update the count based on actual completed episodes
+            _completedEpisodesCount.value = allCompletedEpisodes.size
+            
             // Episode feedback is only triggered after the FIRST episode (count == 1)
-            if (currentCount == 0) { // This will be the first episode completed
+            // AND this episode hasn't already been submitted for feedback
+            val submittedEpisodes = _submittedEpisodeFeedbacks.value
+            if (allCompletedEpisodes.size == 1 && !submittedEpisodes.contains(episodeId)) {
                 // Add to pending feedback list
                 val currentPending = _pendingEpisodeFeedback.value.toMutableList()
                 if (!currentPending.contains(episodeId)) {
@@ -472,8 +504,8 @@ class FeedbackViewModel @Inject constructor(
                         if (feedbackData != null) {
                             val result = feedbackRepository.submitEpisodeFeedback(
                                 episodeId = feedbackData.episodeId,
-                                enjoyment = feedbackData.enjoyment,
-                                clarity = feedbackData.clarity
+                                enjoyment = feedbackData.enjoyment.toString(),
+                                clarity = feedbackData.clarity.toString()
                             )
                             
                             if (result is FeedbackResult.Success) {
@@ -705,22 +737,30 @@ class FeedbackViewModel @Inject constructor(
     
     /**
      * Check if episode feedback should be visible on main feedback page
-     * Only visible if there are pending feedbacks that haven't been submitted
+     * PERMANENTLY UNLOCKED after completing first episode (persistent across app restarts/devices)
      */
     fun shouldShowEpisodeFeedback(): Boolean {
-        val pendingEpisodes = _pendingEpisodeFeedback.value
-        val submittedEpisodes = _submittedEpisodeFeedbacks.value
-        return pendingEpisodes.any { !submittedEpisodes.contains(it) }
+        // Check if user has ever completed any episode (persistent unlock)
+        val completedEpisodesKeys = authPrefs.getCompletedEpisodes()
+        val allProgress = authPrefs.getAllEpisodeProgress()
+        val progressCompletedEpisodes = allProgress.filter { (_, progress) ->
+            progress.status == EpisodeProgress.STATUS_COMPLETED || progress.isCompleted
+        }
+        
+        // If user has completed any episode, feedback is permanently unlocked
+        return completedEpisodesKeys.isNotEmpty() || progressCompletedEpisodes.isNotEmpty()
     }
     
     /**
      * Check if journey feedback should be visible on main feedback page
-     * Only visible if there are pending feedbacks that haven't been submitted
+     * PERMANENTLY UNLOCKED after completing first full journey (persistent across app restarts/devices)
      */
     fun shouldShowJourneyFeedback(): Boolean {
-        val pendingJourneys = _pendingJourneyFeedback.value
-        val submittedJourneys = _submittedJourneyFeedbacks.value
-        return pendingJourneys.any { !submittedJourneys.contains(it) }
+        // Check if user has completed any full journey (persistent unlock)
+        val completedJourneys = authPrefs.getCompletedJourneys()
+        
+        // If user has completed any journey, feedback is permanently unlocked
+        return completedJourneys.isNotEmpty()
     }
     
     /**

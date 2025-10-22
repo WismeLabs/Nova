@@ -3,6 +3,8 @@ package com.wisme.firstapp.data.local
 import android.content.Context
 import android.content.SharedPreferences
 import com.wisme.firstapp.domain.EpisodeProgress
+import org.json.JSONArray
+import org.json.JSONObject
 
 /**
  * Local storage for authentication and user state

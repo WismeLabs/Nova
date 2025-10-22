@@ -103,9 +103,10 @@ object AppModule {
     fun provideJourneyRepository(
         apiService: AuraApiService,
         connectivityRepository: ConnectivityRepository,
-        authPrefs: AuthPreferences
+        authPrefs: AuthPreferences,
+        firebaseAuth: FirebaseAuth
     ): JourneyRepository {
-        return JourneyRepository(apiService, connectivityRepository, authPrefs)
+        return JourneyRepository(apiService, connectivityRepository, authPrefs, firebaseAuth)
     }
     
     @Provides

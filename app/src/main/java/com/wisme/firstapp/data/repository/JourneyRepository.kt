@@ -125,7 +125,7 @@ class JourneyRepository @Inject constructor(
                         val retryResponse = apiService.getAllJourneys("Bearer $refreshedToken")
                         if (retryResponse.isSuccessful && retryResponse.body()?.success == true) {
                             val journeys = retryResponse.body()!!.journeys.map { journeyWrapper ->
-                                journeyWrapper.journey.toDomainModel()
+                                mapApiJourneyToDataClass(journeyWrapper.journey)
                             }
                             Logger.d("JourneyRepository: Token refresh retry successful", "JOURNEY_REPO")
                             return Result.success(journeys)
@@ -718,11 +718,11 @@ class JourneyRepository @Inject constructor(
             Logger.logRepository(
                 repository = "JourneyRepository",
                 operation = "recordListenEvent",
-                additionalData = mapOf(
+                additionalData = mapOf<String, Any>(
                     "episodeId" to episodeId,
                     "eventType" to eventType,
                     "success" to false,
-                    "error" to e.message
+                    "error" to (e.message ?: "Unknown error")
                 )
             )
             Result.failure(e)

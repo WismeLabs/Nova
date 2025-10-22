@@ -29,7 +29,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import androidx.lifecycle.SavedStateHandle
 import javax.inject.Inject
 
 @HiltViewModel
@@ -184,10 +183,8 @@ class PlayerViewModel @Inject constructor(
         
         // Apply speed to MediaController
         mediaController?.let { controller ->
-            val playbackParams = android.media.PlaybackParams()
-            playbackParams.speed = speed
             try {
-                controller.setPlaybackParams(playbackParams)
+                controller.setPlaybackSpeed(speed)
                 Logger.d("PlayerViewModel: Set playback speed to ${speed}x", "PLAYER_VM")
             } catch (e: Exception) {
                 Logger.e("PlayerViewModel: Failed to set playback speed - ${e.message}", "PLAYER_VM")
@@ -250,6 +247,40 @@ class PlayerViewModel @Inject constructor(
      */
     fun setEpisodeCompletionCallback(callback: (String) -> Unit) {
         onEpisodeCompletedCallback = callback
+    }
+    
+    /**
+     * Check if network is currently available (non-suspend version)
+     */
+    fun isNetworkCurrentlyAvailable(): Boolean {
+        return try {
+            // Launch coroutine to check network but don't block
+            viewModelScope.launch {
+                val result = isNetworkAvailable()
+                // Update network status state if needed
+            }
+            // For now, assume network is available unless we have other error states
+            _errorMessage.value == null
+        } catch (e: Exception) {
+            false
+        }
+    }
+    
+    /**
+     * Retry sync operation when network becomes available
+     */
+    fun retrySync() {
+        viewModelScope.launch {
+            if (isNetworkAvailable()) {
+                // Sync any pending progress using current episode ID and progress
+                currentEpisodeId?.let { episodeId ->
+                    val progress = _progressPercentage.value
+                    if (progress > 0f) {
+                        syncProgressToRepository(useBatching = false)
+                    }
+                }
+            }
+        }
     }
     
     private fun checkDeviceAudioCodecs() {
@@ -426,6 +457,36 @@ class PlayerViewModel @Inject constructor(
                     controller.pause()
                     println("PlayerViewModel: *** PAUSING AUDIO PLAYBACK ***")
                 } else {
+                    // Check if episode is completed and should restart from beginning
+                    val currentProgress = _progressPercentage.value
+                    val journeyId = currentJourneyId
+                    val episodeId = currentEpisodeId
+                    
+                    if (currentProgress >= EpisodeProgress.COMPLETION_THRESHOLD && journeyId != null && episodeId != null) {
+                        println("PlayerViewModel: *** RESTARTING COMPLETED EPISODE FROM BEGINNING ***")
+                        
+                        // Check if episode is marked as completed in persistent storage
+                        val isMarkedCompleted = authPrefs.isEpisodeCompleted(journeyId, episodeId)
+                        
+                        controller.seekTo(0L)
+                        _currentPosition.value = 0L
+                        _progressPercentage.value = 0f
+                        
+                        // Update progress to reflect restart BUT preserve completion status
+                        val restartProgress = EpisodeProgress(
+                            progressPercentage = 0f,
+                            playPositionSeconds = 0L,
+                            // CRITICAL: Keep STATUS_COMPLETED if already completed, this preserves achievement
+                            status = if (isMarkedCompleted) EpisodeProgress.STATUS_COMPLETED else EpisodeProgress.STATUS_IN_PROGRESS,
+                            lastUpdated = System.currentTimeMillis()
+                        )
+                        _episodeProgress.value = restartProgress
+                        authPrefs.setEpisodeProgress(journeyId, episodeId, restartProgress)
+                        
+                        // DO NOT remove completion flag - episode remains completed for achievement purposes
+                        println("PlayerViewModel: *** EPISODE RESTART - COMPLETION STATUS PRESERVED: $isMarkedCompleted ***")
+                    }
+                    
                     // Ensure maximum volume before playing
                     controller.volume = 1.0f
                     controller.playWhenReady = true
@@ -697,6 +758,18 @@ class PlayerViewModel @Inject constructor(
         // Set loading state to prevent UI flicker
         _isLoadingEpisode.value = true
         
+        // CRITICAL: Save previous episode's progress before switching
+        // Check BEFORE updating the current episode IDs!
+        val previousJourneyId = currentJourneyId
+        val previousEpisodeId = currentEpisodeId
+        
+        if (previousJourneyId != null && previousEpisodeId != null && 
+            (previousJourneyId != journeyId || previousEpisodeId != episodeId)) {
+            println("PlayerViewModel: *** SAVING PREVIOUS EPISODE PROGRESS BEFORE SWITCH ***")
+            forceSyncProgress() // Save current progress immediately
+        }
+        
+        // Now update the current episode IDs
         currentJourneyId = journeyId
         currentEpisodeId = episodeId
         
@@ -706,13 +779,6 @@ class PlayerViewModel @Inject constructor(
         
         Logger.d("PlayerViewModel - Setting current episode: $journeyId/$episodeId", "PLAYER_VM")
         println("PlayerViewModel: Setting episode with audioUrl: $audioUrl, duration: $durationMinutes minutes")
-        
-        // CRITICAL: Save previous episode's progress before switching
-        if (currentJourneyId != null && currentEpisodeId != null && 
-            (currentJourneyId != journeyId || currentEpisodeId != episodeId)) {
-            println("PlayerViewModel: *** SAVING PREVIOUS EPISODE PROGRESS BEFORE SWITCH ***")
-            forceSyncProgress() // Save current progress immediately
-        }
         
         // IMMEDIATELY stop current audio playback when switching episodes
         mediaController?.let { controller ->
@@ -1141,11 +1207,7 @@ class PlayerViewModel @Inject constructor(
                             // Trigger the completion callback
                             onEpisodeCompletedCallback?.invoke(episodeId)
                             
-                            // Check journey completion independent of callback
-                            val totalEpisodes = currentState.selectedJourney?.episodes?.size ?: 0
-                            if (totalEpisodes > 0) {
-                                checkJourneyCompletion(journeyId, totalEpisodes)
-                            }
+                            // Journey completion will be handled by the callback mechanism
                             
                             println("PlayerViewModel: *** EPISODE COMPLETED AND MARKED PERMANENTLY - $journeyId/$episodeId ***")
                         } else {
@@ -1288,7 +1350,9 @@ class PlayerViewModel @Inject constructor(
                             val position = progressParts[1].toLong()
                             
                             // Try to sync with backend
+                            val token = authPrefs.firebaseToken ?: ""
                             val result = journeyRepository.updateEpisodeProgress(
+                                token = token,
                                 journeyId = journeyId,
                                 episodeId = episodeId,
                                 progressPercentage = progress,
@@ -1389,8 +1453,15 @@ class PlayerViewModel @Inject constructor(
             try {
                 // Use existing sync logic but in batch
                 if (isNetworkAvailable()) {
-                    val success = journeyRepository.syncProgress(episodeId, progress.toFloat())
-                    if (!success) {
+                    val token = authPrefs.firebaseToken ?: ""
+                    val result = journeyRepository.updateEpisodeProgress(
+                        token = token,
+                        journeyId = currentJourneyId ?: "",
+                        episodeId = episodeId,
+                        progressPercentage = progress.toFloat(),
+                        playPositionSeconds = (_currentPosition.value / 1000)
+                    )
+                    if (!result.isSuccess) {
                         // Re-add to batch for retry
                         progressBatch[episodeId] = progress
                         Logger.w("PlayerViewModel - Batch sync failed, re-queued: $episodeId", "PLAYER_VM")

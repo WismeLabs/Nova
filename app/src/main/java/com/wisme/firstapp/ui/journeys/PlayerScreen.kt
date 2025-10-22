@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.wisme.firstapp.ui.utils.ResponsiveTextStyles
@@ -81,6 +82,9 @@ fun PlayerScreen(
     val episodeChangeKey by playerViewModel.episodeChangeKey.collectAsStateWithLifecycle()
     val playbackSpeed by playerViewModel.playbackSpeed.collectAsStateWithLifecycle()
     
+    // Network status for offline handling
+    val isOffline = remember { derivedStateOf { !playerViewModel.isNetworkCurrentlyAvailable() } }
+    
     // CONFIGURATION CHANGE SURVIVAL: Derive currentEpisode from ViewModel state
     val currentEpisode = if (journey.episodes.isNotEmpty() && currentEpisodeIndex < journey.episodes.size) {
         journey.episodes[currentEpisodeIndex]
@@ -101,7 +105,7 @@ fun PlayerScreen(
     // episodeChangeKey now managed by ViewModel for configuration change survival
     
     // Set current episode in PlayerViewModel for progress tracking and start episode
-    LaunchedEffect(journey.JourneyName, currentEpisode.episodeNumber, episodeChangeKey) {
+    LaunchedEffect(journey.journeyId, currentEpisode.episodeNumber, episodeChangeKey) {
         try {
             val journeyId = journey.journeyId // Use database ID instead of display name
             val episodeId = "episode_${currentEpisode.episodeNumber}"
@@ -123,7 +127,7 @@ fun PlayerScreen(
                 
                 journey.episodes.forEach { ep ->
                     val epId = "episode_${ep.episodeNumber}"
-                    if (authPrefs.isEpisodeCompleted(journey.JourneyName, epId)) {
+                    if (authPrefs.isEpisodeCompleted(journey.journeyId, epId)) {
                         completedCount++
                     }
                 }
@@ -132,8 +136,8 @@ fun PlayerScreen(
                 
                 // If all episodes are completed, mark journey as completed
                 if (completedCount >= totalEpisodes) {
-                    authPrefs.markJourneyCompleted(journey.JourneyName)
-                    feedbackViewModel.onJourneyCompleted(journey.JourneyName)
+                    authPrefs.markJourneyCompleted(journey.journeyId)
+                    feedbackViewModel.onJourneyCompleted(journey.journeyId, journey.JourneyName)
                     println("PlayerScreen: *** JOURNEY COMPLETED - ${journey.JourneyName} ***")
                 }
                 
@@ -204,8 +208,10 @@ fun PlayerScreen(
     // Use progress percentage from ViewModel (which includes completion logic)
     val completionPercentage = progressPercentage / 100f
     
-    // Determine if episode is completed
-    val isCompleted = episodeProgress?.isCompleted ?: false
+    // Determine if episode is completed - check persistent completion status
+    val journeyId = journey.journeyId
+    val episodeId = "episode_${currentEpisode.episodeNumber}"
+    val isCompleted = authPrefs.isEpisodeCompleted(journeyId, episodeId)
     
     // Sync progress to JourneyViewModel periodically and on significant changes
     LaunchedEffect(progressPercentage, currentPosition) {
@@ -242,6 +248,7 @@ fun PlayerScreen(
     PlayerScreenContent(
         journey = journey,
         episode = currentEpisode,
+        authPrefs = authPrefs,
         isPlaying = isPlaying,
         currentPosition = currentPosition,
         totalDuration = totalDuration,
@@ -275,14 +282,14 @@ fun PlayerScreen(
                 // Save progress for current episode before switching
                 playerViewModel.forceSyncProgress()
                 
-                currentEpisodeIndex--
-                val newEpisode = journey.episodes.getOrNull(currentEpisodeIndex)
+                val newIndex = currentEpisodeIndex - 1
+                val newEpisode = journey.episodes.getOrNull(newIndex)
                 if (newEpisode != null) {
-                    currentEpisode = newEpisode
+                    playerViewModel.setCurrentEpisodeIndex(newIndex)
                     
                     // Set new episode in PlayerViewModel for progress tracking
                     val journeyId = journey.journeyId // Use database ID instead of display name
-                    val episodeId = "episode_${currentEpisode.episodeNumber}"
+                    val episodeId = "episode_${newEpisode.episodeNumber}"
                     println("PlayerScreen: Switching to previous episode: ${newEpisode.title}")
                     playerViewModel.setCurrentEpisode(
                         journeyId = journeyId, 
@@ -296,12 +303,8 @@ fun PlayerScreen(
                     
                     // Update continue learning state immediately
                     journeyViewModel.refreshContinueLearning()
-                    
-                    // In a real app, you'd load the new episode's audio here
-                    // playerViewModel.loadEpisode(currentEpisode)
                 } else {
-                    // Reset index if episode not found
-                    currentEpisodeIndex++
+                    // Reset index if episode not found - do nothing, use ViewModel state
                 }
             }
         },
@@ -310,14 +313,14 @@ fun PlayerScreen(
                 // Save progress for current episode before switching
                 playerViewModel.forceSyncProgress()
                 
-                currentEpisodeIndex++
-                val newEpisode = journey.episodes.getOrNull(currentEpisodeIndex)
+                val newIndex = currentEpisodeIndex + 1
+                val newEpisode = journey.episodes.getOrNull(newIndex)
                 if (newEpisode != null) {
-                    currentEpisode = newEpisode
+                    playerViewModel.setCurrentEpisodeIndex(newIndex)
                     
                     // Set new episode in PlayerViewModel for progress tracking
                     val journeyId = journey.journeyId // Use database ID instead of display name
-                    val episodeId = "episode_${currentEpisode.episodeNumber}"
+                    val episodeId = "episode_${newEpisode.episodeNumber}"
                     println("PlayerScreen: Switching to next episode: ${newEpisode.title}")
                     playerViewModel.setCurrentEpisode(
                         journeyId = journeyId, 
@@ -331,12 +334,8 @@ fun PlayerScreen(
                     
                     // Update continue learning state immediately
                     journeyViewModel.refreshContinueLearning()
-                    
-                    // In a real app, you'd load the new episode's audio here
-                    // playerViewModel.loadEpisode(currentEpisode)
                 } else {
-                    // Reset index if episode not found
-                    currentEpisodeIndex--
+                    // Episode not found - do nothing, use ViewModel state
                 }
             }
         },
@@ -356,7 +355,7 @@ fun PlayerScreen(
                     
                     // Set new episode in PlayerViewModel for progress tracking
                     val journeyId = journey.journeyId // Use database ID instead of display name
-                    val episodeId = "episode_${currentEpisode.episodeNumber}"
+                    val episodeId = "episode_${newEpisode.episodeNumber}"
                     println("PlayerScreen: Switching to selected episode: ${newEpisode.title}")
                     playerViewModel.setCurrentEpisode(
                         journeyId = journeyId, 
@@ -370,12 +369,15 @@ fun PlayerScreen(
                     
                     // Update continue learning state immediately
                     journeyViewModel.refreshContinueLearning()
-                    
-                    // In a real app, you'd load the selected episode's audio here
-                    // playerViewModel.loadEpisode(currentEpisode)
                 }
             }
-        }
+        },
+        hasAudioError = hasAudioError,
+        errorMessage = errorMessage,
+        onClearError = { playerViewModel.clearError() },
+        isLoadingEpisode = playerViewModel.isLoadingEpisode.collectAsStateWithLifecycle().value,
+        isOffline = isOffline.value,
+        onRetrySync = { playerViewModel.retrySync() }
     )
 }
 
@@ -429,6 +431,7 @@ fun CustomSliderTrack(sliderFraction: Float) {
 fun PlayerScreenContent(
     journey: JourneysDataClass,
     episode: EpisodeDataClass,
+    authPrefs: AuthPreferences,
     isPlaying: Boolean = false,
     currentPosition: Long = 0L,
     totalDuration: Long = 0L,
@@ -447,7 +450,13 @@ fun PlayerScreenContent(
     onPrevious: () -> Unit = {},
     onNext: () -> Unit = {},
     onSpeedChange: (Float) -> Unit = {},
-    onEpisodeSelect: (Int) -> Unit = {}
+    onEpisodeSelect: (Int) -> Unit = {},
+    hasAudioError: Boolean = false,
+    errorMessage: String? = null,
+    onClearError: () -> Unit = {},
+    isLoadingEpisode: Boolean = false,
+    isOffline: Boolean = false,
+    onRetrySync: () -> Unit = {}
 ) {
     // Calculate slider position based on player progress
     val sliderPosition = if (totalDuration > 0) {
@@ -515,7 +524,8 @@ fun PlayerScreenContent(
                     colors = CardDefaults.cardColors(
                         containerColor = Color(0xFFD32F2F).copy(alpha = 0.1f)
                     ),
-                    border = BorderStroke(1.dp, Color(0xFFD32F2F))
+                    border = BorderStroke(1.dp, Color(0xFFD32F2F)),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
                         modifier = Modifier
@@ -537,9 +547,7 @@ fun PlayerScreenContent(
                             modifier = Modifier.weight(1f)
                         )
                         IconButton(
-                            onClick = {
-                                playerViewModel.clearError()
-                            }
+                            onClick = onClearError
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
@@ -552,15 +560,95 @@ fun PlayerScreenContent(
                 }
             }
             
+            // Network status indicator
+            if (isOffline) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFFF9800).copy(alpha = 0.1f)
+                    ),
+                    border = BorderStroke(1.dp, Color(0xFFFF9800)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "Offline",
+                            tint = Color(0xFFFF9800),
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "You're offline. Some features may be limited.",
+                            color = Color(0xFFFF9800),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedButton(
+                            onClick = onRetrySync,
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = Color(0xFFFF9800)
+                            ),
+                            border = BorderStroke(1.dp, Color(0xFFFF9800)),
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Text(
+                                text = "Retry",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+            }
+            
+            // Loading state display
+            if (isLoadingEpisode) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFF2A2A2A)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(
+                            color = accentColor,
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Loading episode...",
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
+            
             // Cover Image - Journey-specific image
-            val journeyImageResource = remember(journey.JourneyName) {
-                when (journey.JourneyName.lowercase()) {
-                    "dsa & coding interviews", 
-                    "dsa / cracking coding interviews" -> R.drawable.journey_dsa
-                    "personal finance mastery", 
-                    "personal finance" -> R.drawable.journey_personal_finance
-                    "hackathon success guide",
-                    "hackathon success" -> R.drawable.journey_hackathon
+            val journeyImageResource = remember(journey.journeyId) {
+                when (journey.journeyId.lowercase()) {
+                    "dsa_coding_interviews", 
+                    "journey_dsa" -> R.drawable.journey_dsa
+                    "personal_finance", 
+                    "journey_finance" -> R.drawable.journey_personal_finance
+                    "hackathon_success",
+                    "journey_hackathon" -> R.drawable.journey_hackathon
                     else -> R.drawable.journey_dsa // Default fallback
                 }
             }
@@ -589,7 +677,7 @@ fun PlayerScreenContent(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Episode ${episode.episodeNumber} - ${progressPercentage.toInt()}% complete",
+                    text = "Episode ${episode.episodeNumber} - ${if (isCompleted) "Complete" else "${progressPercentage.toInt()}% complete"}",
                     color = Color.Gray,
                     style = MaterialTheme.typography.bodySmall,
                     fontSize = ResponsiveFontSizes.body()
@@ -681,7 +769,7 @@ fun PlayerScreenContent(
                 episodes = journey.episodes,
                 currentEpisodeIndex = currentEpisodeIndex,
                 onEpisodeSelect = onEpisodeSelect,
-                journeyId = journey.JourneyName,
+                journeyId = journey.journeyId,
                 authPrefs = authPrefs
             )
         }
@@ -896,12 +984,19 @@ fun PlayerScreenPreview() {
     PlayerScreenContent(
         journey = sampleJourney,
         episode = sampleEpisode,
+        authPrefs = AuthPreferences(LocalContext.current),
         isPlaying = false,
         currentPosition = 0L,
         totalDuration = 1200000L, // 20 minutes
         completionPercentage = 0.67f,
         playbackSpeed = 1f,
         currentEpisodeIndex = 0,
-        avatarResource = R.drawable.avatar_1
+        avatarResource = R.drawable.avatar_1,
+        hasAudioError = false,
+        errorMessage = null,
+        onClearError = { },
+        isLoadingEpisode = false,
+        isOffline = false,
+        onRetrySync = { }
     )
 }
