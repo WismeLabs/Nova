@@ -213,12 +213,12 @@ class PlayerViewModel @Inject constructor(
     }
     
     /**
-     * Show fake loading overlay for 6 seconds to let the episode progress load
+     * Show fake loading overlay for 7 seconds to let the episode progress load
      */
     fun showFakeLoadingForNavigation() {
         viewModelScope.launch {
             _showFakeLoadingOverlay.value = true
-            delay(6000L) // 6 seconds
+            delay(7000L) // 7 seconds
             _showFakeLoadingOverlay.value = false
         }
     }
