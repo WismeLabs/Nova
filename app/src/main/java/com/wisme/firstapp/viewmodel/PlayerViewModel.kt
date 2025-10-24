@@ -4,26 +4,24 @@ import android.app.Application
 import android.content.ComponentName
 import android.content.Context
 import android.media.AudioManager
-import android.media.MediaCodecInfo
 import android.media.MediaCodecList
 import android.net.Uri
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
-import com.wisme.firstapp.R
 import com.wisme.firstapp.data.local.AuthPreferences
-import com.wisme.firstapp.data.repository.JourneyRepository
 import com.wisme.firstapp.data.repository.ConnectivityRepository
+import com.wisme.firstapp.data.repository.JourneyRepository
 import com.wisme.firstapp.domain.EpisodeProgress
 import com.wisme.firstapp.util.Logger
 import com.wisme.firstapp.utils.PlayerService
 import dagger.hilt.android.lifecycle.HiltViewModel
-import androidx.lifecycle.SavedStateHandle
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -66,6 +64,10 @@ class PlayerViewModel @Inject constructor(
     // Loading state to prevent UI reset before data is loaded
     private val _isLoadingEpisode = MutableStateFlow(false)
     val isLoadingEpisode = _isLoadingEpisode.asStateFlow()
+
+    // Fake loading overlay for visual feedback on episode navigation
+    private val _showFakeLoadingOverlay = MutableStateFlow(false)
+    val showFakeLoadingOverlay = _showFakeLoadingOverlay.asStateFlow()
 
     // UI state - moved from remember for configuration change survival
     private val _playbackSpeed = MutableStateFlow(savedStateHandle.get<Float>("playback_speed") ?: 1f)
@@ -208,6 +210,17 @@ class PlayerViewModel @Inject constructor(
     fun triggerEpisodeChange() {
         _episodeChangeKey.value += 1
         Logger.d("PlayerViewModel - Episode change triggered: ${_episodeChangeKey.value}", "PLAYER_VM")
+    }
+    
+    /**
+     * Show fake loading overlay for 6 seconds to let the episode progress load
+     */
+    fun showFakeLoadingForNavigation() {
+        viewModelScope.launch {
+            _showFakeLoadingOverlay.value = true
+            delay(6000L) // 6 seconds
+            _showFakeLoadingOverlay.value = false
+        }
     }
     
     /**
